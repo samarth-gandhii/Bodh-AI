@@ -1,0 +1,8 @@
+﻿src/app/page.tsx(4,21): error TS1261: Already included file name 'C:/Users/Harsh/Desktop/Hackathon/3D simulation generator/Akriti/Combined/frontend/src/components/Sidebar.tsx' differs from file name 'C:/Users/Harsh/Desktop/Hackathon/3D simulation generator/Akriti/Combined/frontend/src/components/sidebar.tsx' only in casing.
+  The file is in the program because:
+    Imported via "@/components/Sidebar" from file 'C:/Users/Harsh/Desktop/Hackathon/3D simulation generator/Akriti/Combined/frontend/src/app/page.tsx'
+    Matched by include pattern '**/*.tsx' in 'C:/Users/Harsh/Desktop/Hackathon/3D simulation generator/Akriti/Combined/frontend/tsconfig.json'
+src/components/ActionCards.tsx(1,63): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/ContentGrid.tsx(1,33): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/SearchBar.tsx(1,25): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/Sidebar.tsx(4,8): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.

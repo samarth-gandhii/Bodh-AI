@@ -11,6 +11,8 @@ export default function Home() {
   const [userName] = useState("Admiral");
   const [prompt, setPrompt] = useState("");
   const [showGuide, setShowGuide] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("Gemini 2.5 Flash");
+  const [contentType, setContentType] = useState("Text");
   
   // Navigation State
   const [activeView, setActiveView] = useState<"dashboard" | "space">("dashboard");
@@ -70,6 +72,10 @@ export default function Home() {
               prompt={prompt} 
               setPrompt={setPrompt} 
               onGenerate={handleGenerate} 
+              selectedModel={selectedModel}       
+              setSelectedModel={setSelectedModel} 
+              contentType={contentType}           
+              setContentType={setContentType}
             />
             
             <ContentGrid />

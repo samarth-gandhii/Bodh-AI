@@ -742,9 +742,124 @@ animate();
 
 # 1. Corrected the function name to match Dijkstra
 def get_dijkstra_content():
+    # TODO: PASTE 10-QUESTION QUIZ JSON HERE
+    quiz_payload = [
+    {
+        "question": "What type of algorithm is Dijkstra's Algorithm classified as?",
+        "options": [
+            "A divide-and-conquer algorithm",
+            "A greedy algorithm",
+            "A dynamic programming algorithm",
+            "A backtracking algorithm"
+        ],
+        "correct_index": 1,
+        "explanation": "According to the text, Dijkstra's Algorithm is a greedy algorithm used to find the shortest paths between nodes."
+    },
+    {
+        "question": "What specific condition must the graph's edge weights meet for Dijkstra's Algorithm to work properly?",
+        "options": [
+            "They must be non-negative.",
+            "They must all be exactly 1.",
+            "They must be integers.",
+            "They can be any real number, including negative values."
+        ],
+        "correct_index": 0,
+        "explanation": "The text specifies that Dijkstra's algorithm is used to find shortest paths where edge weights are non-negative."
+    },
+    {
+        "question": "At the very beginning of the algorithm, what is the distance assigned to the designated 'source' node?",
+        "options": [
+            "Zero",
+            "One",
+            "Infinity",
+            "Negative one"
+        ],
+        "correct_index": 0,
+        "explanation": "The algorithm starts at the designated source node and assigns it a distance of zero."
+    },
+    {
+        "question": "Before the algorithm explores them, what distance is initially assigned to all nodes other than the source?",
+        "options": [
+            "Zero",
+            "The weight of their closest edge",
+            "One hundred",
+            "Infinite"
+        ],
+        "correct_index": 3,
+        "explanation": "All other nodes initially have an 'infinite' distance until the algorithm discovers a path to them."
+    },
+    {
+        "question": "In the context of this algorithm, what does it mean to 'relax' a neighbor?",
+        "options": [
+            "Removing the neighbor from the graph temporarily.",
+            "Checking if going through the current node offers a shorter path, and updating the neighbor's distance if so.",
+            "Marking the neighbor as permanently unvisitable.",
+            "Clearing the neighbor's previous node history."
+        ],
+        "correct_index": 1,
+        "explanation": "Relaxing a neighbor means calculating if the newly found path is shorter than the currently known path, and updating its distance and 'previous' node record if a shorter path is found."
+    },
+    {
+        "question": "At what exact point does the algorithm guarantee that the recorded distance for a node is the absolute shortest possible from the source?",
+        "options": [
+            "When the node is first added to the priority queue.",
+            "When its distance is first updated from infinity.",
+            "When the node is selected and marked as 'visited' (or 'settled').",
+            "Only after every single node in the graph has been visited."
+        ],
+        "correct_index": 2,
+        "explanation": "The text states that guaranteeing the shortest distance happens specifically when a node is selected, its neighbors are updated, and it is marked as 'visited'."
+    },
+    {
+        "question": "In the provided graph example, what is the final total distance of the shortest path from node A to node E?",
+        "options": [
+            "4",
+            "7",
+            "6",
+            "5"
+        ],
+        "correct_index": 3,
+        "explanation": "As shown in the final state of the example, the shortest path is A -> C -> D -> E, which gives a total distance of 5."
+    },
+    {
+        "question": "According to the algorithm logic pseudocode, what specific data structure is used to efficiently extract the node with the smallest distance?",
+        "options": [
+            "A standard array",
+            "A Last-In-First-Out (LIFO) Stack",
+            "A min-heap (Priority Queue)",
+            "A Hash Map"
+        ],
+        "correct_index": 2,
+        "explanation": "The pseudocode explicitly states: 'We use a min-heap for efficient extraction of the smallest distance' within the priority queue."
+    },
+    {
+        "question": "In the pseudocode, what happens if an extracted node 'u' is already in the 'visited' set?",
+        "options": [
+            "The algorithm crashes and returns an error.",
+            "The algorithm resets the node's distance to infinity.",
+            "The algorithm uses a 'continue' statement to skip it.",
+            "The algorithm recalculates all of its neighbors anyway."
+        ],
+        "correct_index": 2,
+        "explanation": "The logic dictates that if a node is already in the visited set (meaning a shorter path was already processed), it skips it using a 'continue' statement."
+    },
+    {
+        "question": "Which real-world network routing protocol is explicitly mentioned as using an algorithm similar to Dijkstra's?",
+        "options": [
+            "TCP (Transmission Control Protocol)",
+            "OSPF (Open Shortest Path First)",
+            "BGP (Border Gateway Protocol)",
+            "HTTP (Hypertext Transfer Protocol)"
+        ],
+        "correct_index": 1,
+        "explanation": "OSPF (Open Shortest Path First) is explicitly listed as a network routing protocol that uses this logic to minimize latency or hop count."
+    }
+]
+
     return {
         "title": "Dijkstra's Algorithm",
         "text_explanation": text_content,
         "media_type": "3D_simulation", # 2. Corrected the media type
-        "code": canvas_payload
+        "code": canvas_payload,
+        "quiz_data": quiz_payload
     }

@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Bot, X, Code, Loader2, Maximize, Minimize } from "lucide-react";
+import { Bot, X, Code, Loader2, Maximize, Minimize, HelpCircle } from "lucide-react";
 import SearchBar from "./SearchBar";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import QuizUI from "./QuizUI";
 
 interface SpaceProps {
     initialPrompt: string;
@@ -15,6 +16,7 @@ interface Message {
     role: "user" | "ai";
     content: string;
     code?: string | null;
+    quiz_data?: any[] | null;
 }
 
 function createMessageId(): string {
@@ -28,6 +30,8 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
     const [prompt, setPrompt] = useState("");
     const [isCanvasOpen, setIsCanvasOpen] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [activePanelMode, setActivePanelMode] = useState<"3D" | "Quiz" | null>(null);
+    const [activeQuizData, setActiveQuizData] = useState<any[] | null>(null);
 
     const [selectedModel, setSelectedModel] = useState("Gemini 2.5 Flash");
     const [contentType, setContentType] = useState(initialContentType || "Text");
@@ -75,12 +79,18 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
                 id: createMessageId(),
                 role: "ai",
                 content: data.text_explanation,
-                code: data.media_type === "3D_simulation" ? data.canvas_code : null
+                code: data.media_type === "3D_simulation" ? data.canvas_code : null,
+                quiz_data: data.quiz_data || null
             };
 
             setMessages((prev) => [...prev, aiMsg]);
 
             if (data.media_type === "3D_simulation" && data.canvas_code) {
+                setActivePanelMode("3D");
+                setIsCanvasOpen(true);
+            } else if (data.media_type === "Quiz" && data.quiz_data) {
+                setActiveQuizData(data.quiz_data);
+                setActivePanelMode("Quiz");
                 setIsCanvasOpen(true);
             }
 
@@ -138,6 +148,12 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
+                                                    p({ children, ...props }: any) {
+                                                        return <p className="mb-5 leading-relaxed" {...props}>{children}</p>;
+                                                    },
+                                                    li({ children, ...props }: any) {
+                                                        return <li className="mb-2 ml-4 list-disc" {...props}>{children}</li>;
+                                                    },
                                                     code({ node, inline, className, children, ...props }: any) {
                                                         const childText = String(children ?? "");
                                                         const isBlock = Boolean(className?.includes("language-")) || childText.includes("\n");
@@ -163,19 +179,46 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
                                         </div>
 
                                         {msg.code && (
-                                            <div className="border border-gray-200 rounded-2xl p-4 flex items-center justify-between bg-[#fbfbfb] hover:bg-gray-50 transition-colors w-full max-w-md mt-4 relative z-20">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="bg-white border border-gray-200 p-2 rounded-lg">
-                                                        <Code size={18} className="text-gray-600" />
+                                            <div className="mt-8 mb-4 relative z-20">
+                                                <p className="text-gray-500 italic mb-3 font-medium text-sm">
+                                                    💡 You can get a better understanding with this interactive 3D simulation:
+                                                </p>
+                                                <div className="border border-gray-200 rounded-2xl p-4 flex items-center justify-between bg-[#fbfbfb] hover:bg-gray-50 transition-colors w-full max-w-md">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-white border border-gray-200 p-2 rounded-lg">
+                                                            <Code size={18} className="text-gray-600" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-sm font-semibold text-gray-900">3D Simulation Generated</h4>
+                                                            <p className="text-xs text-gray-500">Three.js Canvas Ready</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h4 className="text-sm font-semibold text-gray-900">3D Simulation Generated</h4>
-                                                        <p className="text-xs text-gray-500">Three.js Canvas Ready</p>
-                                                    </div>
+                                                    <button onClick={() => { setActivePanelMode("3D"); setIsCanvasOpen(true); }} className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium px-4 py-1.5 rounded-full text-sm transition-colors cursor-pointer relative z-20">
+                                                        Open
+                                                    </button>
                                                 </div>
-                                                <button onClick={() => setIsCanvasOpen(true)} className="bg-blue-100 hover:bg-blue-200 text-blue-700 font-medium px-4 py-1.5 rounded-full text-sm transition-colors cursor-pointer relative z-20">
-                                                    Open
-                                                </button>
+                                            </div>
+                                        )}
+
+                                        {msg.quiz_data && msg.quiz_data.length > 0 && (
+                                            <div className="mt-8 mb-4 relative z-20">
+                                                <p className="text-purple-600/80 italic mb-3 font-medium text-sm">
+                                                    🎯 We've reached the end of this topic! Let's test what you learned:
+                                                </p>
+                                                <div className="border border-purple-200 rounded-2xl p-4 flex items-center justify-between bg-purple-50/50 hover:bg-purple-50 transition-colors w-full max-w-md">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="bg-white border border-purple-200 p-2 rounded-lg">
+                                                            <HelpCircle size={18} className="text-purple-600" />
+                                                        </div>
+                                                        <div>
+                                                            <h4 className="text-sm font-semibold text-gray-900">Interactive Quiz Generated</h4>
+                                                            <p className="text-xs text-purple-600 font-medium">Test your knowledge</p>
+                                                        </div>
+                                                    </div>
+                                                    <button onClick={() => { setActiveQuizData(msg.quiz_data!); setActivePanelMode("Quiz"); setIsCanvasOpen(true); }} className="bg-purple-100 hover:bg-purple-200 text-purple-700 font-medium px-4 py-1.5 rounded-full text-sm transition-colors cursor-pointer relative z-20">
+                                                        Open
+                                                    </button>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
@@ -218,14 +261,18 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
             {/* RIGHT SIDE: Sliding Canvas Panel */}
             <div className={`bg-[#fbfbfb] h-full transition-all duration-300 ease-in-out flex flex-col border-l border-gray-200 ${isCanvasOpen ? (isFullScreen ? 'w-full translate-x-0' : 'w-1/2 translate-x-0') : 'w-0 translate-x-full overflow-hidden'}`}>
                 <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white shrink-0">
-                    <span className="font-medium text-sm text-gray-800">SeeKro 3D Sandbox</span>
+                    <span className="font-medium text-sm text-gray-800">
+                        {activePanelMode === "Quiz" ? "Interactive Quiz" : "SeeKro 3D Sandbox"}
+                    </span>
                     <button onClick={() => { setIsCanvasOpen(false); setIsFullScreen(false); }} className="text-gray-400 hover:text-gray-700 p-1 rounded-md hover:bg-gray-100 transition-colors">
                         <X size={18} />
                     </button>
                 </div>
                 <div className="flex-1 p-4">
                     <div className="w-full h-full bg-black rounded-xl border border-gray-200 overflow-hidden relative shadow-inner">
-                        {latestCanvasCode ? (
+                        {activePanelMode === "Quiz" ? (
+                            <QuizUI data={activeQuizData} />
+                        ) : latestCanvasCode ? (
                             <>
                                 <iframe
                                     title="3D Canvas"
@@ -243,7 +290,7 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
                             </>
                         ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-gray-500 text-sm">No simulation active.</span>
+                                <span className="text-gray-500 text-sm">No content active.</span>
                             </div>
                         )}
                     </div>

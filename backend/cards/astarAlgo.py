@@ -816,9 +816,124 @@ animate();
 """
 
 def get_astar_content():
+    # TODO: PASTE 10-QUESTION QUIZ JSON HERE
+    quiz_payload = [
+    {
+        "question": "Which two algorithms does the A* search algorithm combine features of?",
+        "options": [
+            "Breadth-First Search and Depth-First Search",
+            "Dijkstra's Algorithm and Greedy Best-First Search",
+            "Bellman-Ford and Prim's Algorithm",
+            "Kruskal's Algorithm and Floyd-Warshall"
+        ],
+        "correct_index": 1,
+        "explanation": "A* combines Dijkstra's focus on exact past costs with Greedy Best-First Search's heuristic estimates for future costs."
+    },
+    {
+        "question": "In the A* evaluation function f(n) = g(n) + h(n), what does g(n) represent?",
+        "options": [
+            "The total estimated cost to the goal",
+            "The heuristic estimated cost to go",
+            "The actual cost from the starting node to the current node",
+            "The number of nodes in the open list"
+        ],
+        "correct_index": 2,
+        "explanation": "g(n) is the 'past cost' or 'cost so far' to reach the current node n from the starting node."
+    },
+    {
+        "question": "For A* to guarantee finding the shortest path, the heuristic function h(n) must be 'admissible'. What does this mean?",
+        "options": [
+            "It never underestimates the true cost to the goal.",
+            "It never overestimates the true cost to the goal.",
+            "It must exactly equal the true cost to the goal.",
+            "It must be calculated using Manhattan distance."
+        ],
+        "correct_index": 1,
+        "explanation": "An admissible heuristic is optimistic; it never overestimates the true cost to reach the goal."
+    },
+    {
+        "question": "What is the primary purpose of the 'Closed List' in A*?",
+        "options": [
+            "To prioritize which nodes to explore next.",
+            "To store nodes that are currently being evaluated.",
+            "To store the final shortest path.",
+            "To store nodes that have already been fully explored."
+        ],
+        "correct_index": 3,
+        "explanation": "The Closed List holds nodes whose neighbors have all been processed, ensuring the algorithm doesn't waste time revisiting them."
+    },
+    {
+        "question": "How does A* select the very next node to explore from the Open List?",
+        "options": [
+            "It picks the node with the lowest g(n) value.",
+            "It picks the node with the lowest h(n) value.",
+            "It picks the node with the lowest f(n) value.",
+            "It picks the node that was added most recently."
+        ],
+        "correct_index": 2,
+        "explanation": "A* is a 'best-first' search, meaning it always prioritizes exploring the node with the lowest total estimated cost, f(n)."
+    },
+    {
+        "question": "When evaluating a neighbor node, under what condition does A* update that neighbor's g(n) value?",
+        "options": [
+            "Only if the neighbor is already in the Closed List.",
+            "If the new g(n) is lower than its previously recorded g(n) value.",
+            "Every single time the neighbor is evaluated.",
+            "If the new g(n) is higher than its previously recorded g(n) value."
+        ],
+        "correct_index": 1,
+        "explanation": "The g value is updated only if the algorithm discovers a faster (lower cost) path to reach that neighbor."
+    },
+    {
+        "question": "In the provided 4x4 grid example, which heuristic function is used to estimate the cost to the goal?",
+        "options": [
+            "Euclidean distance",
+            "Chebyshev distance",
+            "Manhattan distance",
+            "Minkowski distance"
+        ],
+        "correct_index": 2,
+        "explanation": "The example calculates the distance by adding the absolute differences of the x and y coordinates, which is the Manhattan distance."
+    },
+    {
+        "question": "In the provided Python code implementation, what data structure is used to manage the Open List efficiently?",
+        "options": [
+            "A standard array",
+            "A dictionary",
+            "A priority queue (heapq)",
+            "A linked list"
+        ],
+        "correct_index": 2,
+        "explanation": "A priority queue (using the heapq library) is used to automatically keep the node with the lowest f_score at the front for quick extraction."
+    },
+    {
+        "question": "Once the goal node is reached, how does the algorithm reconstruct the final shortest path?",
+        "options": [
+            "By sorting the Closed List alphabetically.",
+            "By backtracking parent pointers from the goal node to the start node.",
+            "By moving forward from the start node selecting lowest h(n) values.",
+            "By printing the entire Open List."
+        ],
+        "correct_index": 1,
+        "explanation": "Every time a node is successfully updated, its 'parent' is recorded. The final path is found by tracing these parents backward from the goal."
+    },
+    {
+        "question": "According to the text, which of the following is a real-world implementation of the A* algorithm?",
+        "options": [
+            "Sorting large databases",
+            "Encrypting passwords",
+            "Video Game AI (Pathfinding)",
+            "Compressing image files"
+        ],
+        "correct_index": 2,
+        "explanation": "A* is heavily used in game development for NPC pathfinding to navigate game worlds and avoid obstacles."
+    }
+]
+
     return {
         "title": "A* Search Algorithm",
         "text_explanation": text_content,
         "media_type": "python_code",
-        "code": canvas_payload
+        "code": canvas_payload,
+        "quiz_data": quiz_payload
     }

@@ -167,14 +167,584 @@ function Dijkstra(graph, source_node):
 *   **Logistics and Delivery Services:** Optimizing **delivery routes for vehicles** to minimize travel time, fuel consumption, or distance for package delivery, ride-sharing, or emergency services.
 """
 
-canvas_payload = """
-# TODO: Insert raw code or Three.js script here
-"""
+canvas_payload = r"""
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0e1a);
+scene.fog = new THREE.FogExp2(0x0a0e1a, 0.035);
 
+const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 9, 22);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.style.margin = '0';
+document.body.style.overflow = 'hidden';
+document.body.style.background = '#0a0e1a';
+document.body.appendChild(renderer.domElement);
+renderer.domElement.style.position = 'fixed';
+renderer.domElement.style.top = '0';
+renderer.domElement.style.left = '0';
+renderer.domElement.style.zIndex = '0';
+
+const controls = new window.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 8;
+controls.maxDistance = 50;
+controls.maxPolarAngle = Math.PI * 0.85;
+
+// Lighting
+const ambient = new THREE.AmbientLight(0x1a2040, 2.0);
+scene.add(ambient);
+const keyLight = new THREE.PointLight(0x4488ff, 3.0, 60);
+keyLight.position.set(4, 12, 6);
+keyLight.castShadow = true;
+scene.add(keyLight);
+const fillLight = new THREE.PointLight(0xff6622, 1.5, 40);
+fillLight.position.set(-8, 4, -6);
+scene.add(fillLight);
+const rimLight = new THREE.PointLight(0x22ffcc, 1.0, 35);
+rimLight.position.set(0, -4, -10);
+scene.add(rimLight);
+
+// Grid floor
+const gridHelper = new THREE.GridHelper(40, 30, 0x1a2a4a, 0x111a2e);
+gridHelper.position.y = -4;
+scene.add(gridHelper);
+
+// ─── Graph Data ───────────────────────────────────────────────────────────────
+const NODE_DEFS = [
+  { id: 'A', pos: new THREE.Vector3(-7, 0, 1) },
+  { id: 'B', pos: new THREE.Vector3(-3, 3.5, -3) },
+  { id: 'C', pos: new THREE.Vector3(-3, -2, 3) },
+  { id: 'D', pos: new THREE.Vector3(1, 4.5, -1) },
+  { id: 'E', pos: new THREE.Vector3(1, -0.5, 4) },
+  { id: 'F', pos: new THREE.Vector3(5, 2.5, -0.5) },
+  { id: 'G', pos: new THREE.Vector3(7, -1.5, -3) },
+];
+
+const EDGE_DEFS = [
+  { from: 'A', to: 'B', weight: 4 },
+  { from: 'A', to: 'C', weight: 2 },
+  { from: 'B', to: 'C', weight: 1 },
+  { from: 'B', to: 'D', weight: 5 },
+  { from: 'B', to: 'E', weight: 8 },
+  { from: 'C', to: 'D', weight: 8 },
+  { from: 'C', to: 'E', weight: 10 },
+  { from: 'D', to: 'F', weight: 2 },
+  { from: 'E', to: 'F', weight: 3 },
+  { from: 'E', to: 'G', weight: 7 },
+  { from: 'F', to: 'G', weight: 1 },
+];
+
+const adjacency = {};
+NODE_DEFS.forEach(n => (adjacency[n.id] = []));
+EDGE_DEFS.forEach(e => {
+  adjacency[e.from].push({ to: e.to, weight: e.weight });
+  adjacency[e.to].push({ to: e.from, weight: e.weight });
+});
+
+// ─── Colors ───────────────────────────────────────────────────────────────────
+const C = {
+  UNVISITED: 0x3a4a6a,
+  START:     0x00aaff,
+  CURRENT:   0xffcc00,
+  NEIGHBOR:  0xff7700,
+  VISITED:   0x22dd55,
+  EDGE_DEF:  0x1e2e4a,
+  EDGE_ACT:  0xff7700,
+  EDGE_SPT:  0x22dd55,
+};
+
+// ─── Build 3D Nodes ───────────────────────────────────────────────────────────
+const nodeMeshes = {};
+const nodeGlows  = {};
+const nodeRings  = {};
+
+NODE_DEFS.forEach(n => {
+  const geo   = new THREE.SphereGeometry(0.65, 48, 48);
+  const mat   = new THREE.MeshPhongMaterial({
+    color: C.UNVISITED, emissive: 0x0a1428, shininess: 120, specular: 0x88aaff
+  });
+  const mesh  = new THREE.Mesh(geo, mat);
+  mesh.position.copy(n.pos);
+  mesh.castShadow = true;
+  mesh.userData.id = n.id;
+  scene.add(mesh);
+  nodeMeshes[n.id] = mesh;
+
+  const glowGeo = new THREE.SphereGeometry(1.0, 32, 32);
+  const glowMat = new THREE.MeshBasicMaterial({
+    color: C.UNVISITED, transparent: true, opacity: 0.06, side: THREE.BackSide
+  });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.copy(n.pos);
+  scene.add(glow);
+  nodeGlows[n.id] = glow;
+
+  const ringGeo = new THREE.RingGeometry(0.80, 0.95, 48);
+  const ringMat = new THREE.MeshBasicMaterial({
+    color: C.UNVISITED, transparent: true, opacity: 0.0, side: THREE.DoubleSide
+  });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(n.pos);
+  ring.lookAt(camera.position);
+  scene.add(ring);
+  nodeRings[n.id] = ring;
+});
+
+// ─── Build 3D Edges ───────────────────────────────────────────────────────────
+const edgeMeshes = [];
+
+EDGE_DEFS.forEach(e => {
+  const fPos = NODE_DEFS.find(n => n.id === e.from).pos;
+  const tPos = NODE_DEFS.find(n => n.id === e.to).pos;
+  const pts  = [fPos.clone(), tPos.clone()];
+  const geo  = new THREE.BufferGeometry().setFromPoints(pts);
+  const mat  = new THREE.LineBasicMaterial({ color: C.EDGE_DEF, transparent: true, opacity: 0.55 });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  const mid = new THREE.Vector3().addVectors(fPos, tPos).multiplyScalar(0.5);
+  edgeMeshes.push({ line, mat, from: e.from, to: e.to, weight: e.weight, mid });
+});
+
+// ─── HTML: Utility ────────────────────────────────────────────────────────────
+function el(tag, css, html) {
+  const d = document.createElement(tag);
+  if (css)  d.style.cssText = css;
+  if (html) d.innerHTML = html;
+  document.body.appendChild(d);
+  return d;
+}
+
+const FONT = "'Courier New', 'Lucida Console', monospace";
+const PANEL_BASE = `position:fixed;z-index:100;backdrop-filter:blur(10px);
+  background:rgba(8,12,28,0.88);border:1px solid rgba(80,120,220,0.25);border-radius:14px;
+  font-family:${FONT};color:#b8cef0;`;
+
+// ─── Info Panel (top-center) ──────────────────────────────────────────────────
+const infoPanel = el('div',
+  `${PANEL_BASE}top:14px;left:50%;transform:translateX(-50%);
+   max-width:720px;width:calc(100% - 280px);padding:14px 22px;
+   font-size:13px;line-height:1.65;
+   box-shadow:0 0 40px rgba(40,90,255,0.18);`
+);
+
+// ─── Distance Table (top-right) ───────────────────────────────────────────────
+const tablePanel = el('div',
+  `${PANEL_BASE}top:14px;right:14px;min-width:190px;padding:14px 18px;font-size:12.5px;
+   box-shadow:0 0 25px rgba(40,90,255,0.12);`
+);
+
+// ─── Control Panel (bottom-center) ────────────────────────────────────────────
+const ctrlPanel = el('div',
+  `${PANEL_BASE}bottom:18px;left:50%;transform:translateX(-50%);
+   display:flex;align-items:center;gap:10px;padding:10px 22px;
+   box-shadow:0 0 40px rgba(40,90,255,0.2);white-space:nowrap;`
+);
+
+const BTN = `background:linear-gradient(135deg,#111c3a,#0a1228);
+  border:1px solid rgba(80,130,240,0.4);color:#88aaee;border-radius:8px;
+  padding:7px 16px;cursor:pointer;font-family:${FONT};font-size:12.5px;
+  transition:border-color 0.2s,color 0.2s;`;
+
+function mkBtn(label) {
+  const b = document.createElement('button');
+  b.innerHTML = label;
+  b.style.cssText = BTN;
+  b.onmouseenter = () => { b.style.borderColor = 'rgba(100,160,255,0.8)'; b.style.color = '#ccddff'; };
+  b.onmouseleave = () => { b.style.borderColor = 'rgba(80,130,240,0.4)';  b.style.color = '#88aaee'; };
+  ctrlPanel.appendChild(b);
+  return b;
+}
+
+const nextBtn    = mkBtn('&#9654; Next Step');
+const autoBtn    = mkBtn('&#9654;&#9654; Auto Play');
+const restartBtn = mkBtn('&#8635; Restart');
+
+const spLbl = document.createElement('span');
+spLbl.style.cssText = `color:#4a6a99;font-family:${FONT};font-size:12px;margin-left:4px;`;
+spLbl.textContent = 'Speed:';
+ctrlPanel.appendChild(spLbl);
+
+const speedSlider = document.createElement('input');
+speedSlider.type = 'range';
+speedSlider.min = '1';
+speedSlider.max = '10';
+speedSlider.value = '5';
+speedSlider.style.cssText = 'width:80px;accent-color:#4488ff;cursor:pointer;';
+ctrlPanel.appendChild(speedSlider);
+
+// ─── Legend (bottom-left) ────────────────────────────────────────────────────
+el('div',
+  `${PANEL_BASE}bottom:18px;left:14px;padding:12px 16px;font-size:12px;line-height:2.0;`,
+  `<div style="color:#3d5580;margin-bottom:2px;letter-spacing:1px;font-size:11px">LEGEND</div>
+   <div><span style="color:#3a4a6a;font-size:16px">&#11044;</span> Unvisited</div>
+   <div><span style="color:#00aaff;font-size:16px">&#11044;</span> Start node</div>
+   <div><span style="color:#ffcc00;font-size:16px">&#11044;</span> Current node</div>
+   <div><span style="color:#ff7700;font-size:16px">&#11044;</span> Checking neighbor</div>
+   <div><span style="color:#22dd55;font-size:16px">&#11044;</span> Finalized (shortest)</div>`
+);
+
+// ─── Tooltip ─────────────────────────────────────────────────────────────────
+const tooltip = el('div',
+  `position:fixed;z-index:200;display:none;pointer-events:none;
+   background:rgba(6,10,24,0.94);border:1px solid rgba(80,140,255,0.45);
+   border-radius:9px;padding:9px 14px;font-family:${FONT};font-size:12px;
+   color:#aaccff;box-shadow:0 0 20px rgba(50,100,255,0.3);`
+);
+
+// ─── Node Labels (3D→2D projected) ───────────────────────────────────────────
+const nodeLabels = {};
+NODE_DEFS.forEach(n => {
+  const d = document.createElement('div');
+  d.textContent = n.id;
+  d.style.cssText = `position:fixed;pointer-events:none;z-index:50;
+    color:#ffffff;font-family:${FONT};font-size:15px;font-weight:bold;
+    text-shadow:0 0 10px #4488ff,0 0 22px #4488ff,0 0 40px #1144aa;
+    transform:translate(-50%,-50%);transition:color 0.3s;`;
+  document.body.appendChild(d);
+  nodeLabels[n.id] = d;
+});
+
+// ─── Edge Weight Labels ───────────────────────────────────────────────────────
+const weightLabels = [];
+edgeMeshes.forEach(e => {
+  const d = document.createElement('div');
+  d.textContent = e.weight;
+  d.style.cssText = `position:fixed;pointer-events:none;z-index:50;
+    color:#667788;font-family:${FONT};font-size:11px;
+    text-shadow:0 0 6px #334455;transform:translate(-50%,-50%);`;
+  document.body.appendChild(d);
+  weightLabels.push({ d, mid: e.mid });
+});
+
+// ─── Step Progress Bar ────────────────────────────────────────────────────────
+const progressWrap = el('div',
+  `${PANEL_BASE}bottom:78px;left:50%;transform:translateX(-50%);
+   padding:6px 22px 8px;min-width:260px;`
+);
+const progressTrack = document.createElement('div');
+progressTrack.style.cssText = `height:4px;border-radius:2px;background:rgba(255,255,255,0.08);
+  overflow:hidden;margin-top:4px;`;
+const progressBar = document.createElement('div');
+progressBar.style.cssText = `height:100%;width:0%;background:linear-gradient(90deg,#2255cc,#4488ff);
+  border-radius:2px;transition:width 0.3s ease;`;
+const progressLabel = document.createElement('div');
+progressLabel.style.cssText = `font-family:${FONT};font-size:11px;color:#3d5580;text-align:center;`;
+progressLabel.textContent = 'Step 0 / 0';
+progressTrack.appendChild(progressBar);
+progressWrap.appendChild(progressLabel);
+progressWrap.appendChild(progressTrack);
+
+// ─── Algorithm: Generate Steps ───────────────────────────────────────────────
+function generateSteps() {
+  const dist    = {};
+  const prev    = {};
+  const visited = new Set();
+  NODE_DEFS.forEach(n => { dist[n.id] = Infinity; prev[n.id] = null; });
+  dist['A'] = 0;
+  const unvisited = new Set(NODE_DEFS.map(n => n.id));
+  const steps     = [];
+  const sptEdges  = new Set();
+
+  steps.push({
+    type: 'init', current: null, neighbor: null, activeEdge: null,
+    dist: { ...dist }, visited: new Set(visited), sptEdges: new Set(sptEdges),
+    msg: `&#128640; <b style="color:#88aaff">Initialization.</b> Distance to source <b style="color:#00aaff">A</b> = <b>0</b>. All other nodes = <b>&#8734;</b>. The priority queue holds all nodes. Let's begin.`
+  });
+
+  while (unvisited.size > 0) {
+    let minD = Infinity, current = null;
+    unvisited.forEach(id => { if (dist[id] < minD) { minD = dist[id]; current = id; } });
+    if (!current || dist[current] === Infinity) break;
+
+    steps.push({
+      type: 'pick', current, neighbor: null, activeEdge: null,
+      dist: { ...dist }, visited: new Set(visited), sptEdges: new Set(sptEdges),
+      msg: `&#128205; <b style="color:#88aaff">Extracting minimum.</b> Node <b style="color:#ffcc00">${current}</b> has the smallest tentative distance (<b>${dist[current]}</b>). It becomes the current node.`
+    });
+
+    adjacency[current].forEach(({ to, weight }) => {
+      if (visited.has(to)) return;
+      const oldD   = dist[to];
+      const newD   = dist[current] + weight;
+      const eKey   = [current, to].sort().join('|');
+      const improved = newD < oldD;
+      const oldStr = oldD === Infinity ? '&#8734;' : oldD;
+      steps.push({
+        type: 'relax', current, neighbor: to, activeEdge: eKey,
+        dist: improved ? { ...dist, [to]: newD } : { ...dist },
+        visited: new Set(visited), sptEdges: new Set(sptEdges),
+        msg: improved
+          ? `&#128270; <b style="color:#88aaff">Edge relaxed:</b> <b style="color:#ffcc00">${current}</b> &#8594; <b style="color:#ff7700">${to}</b> (w=${weight}). &nbsp; ${dist[current]} + ${weight} = <b>${newD}</b> &lt; ${oldStr}. &#9989; <b style="color:#88ff88">Distance to ${to} updated to ${newD}!</b>`
+          : `&#128270; <b style="color:#88aaff">Edge checked:</b> <b style="color:#ffcc00">${current}</b> &#8594; <b style="color:#ff7700">${to}</b> (w=${weight}). &nbsp; ${dist[current]} + ${weight} = <b>${newD}</b> &#8805; ${oldStr}. &#10060; No improvement.`
+      });
+      if (improved) {
+        dist[to]  = newD;
+        prev[to]  = current;
+      }
+    });
+
+    visited.add(current);
+    unvisited.delete(current);
+    if (prev[current]) sptEdges.add([current, prev[current]].sort().join('|'));
+
+    steps.push({
+      type: 'finalize', current, neighbor: null, activeEdge: null,
+      dist: { ...dist }, visited: new Set(visited), sptEdges: new Set(sptEdges),
+      msg: `&#9989; <b style="color:#88aaff">Node finalized:</b> Shortest path to <b style="color:#22dd55">${current}</b> confirmed as <b>${dist[current]}</b>. Marked visited — it will not be revisited.`
+    });
+  }
+
+  steps.push({
+    type: 'done', current: null, neighbor: null, activeEdge: null,
+    dist: { ...dist }, visited: new Set(visited), sptEdges: new Set(sptEdges),
+    msg: `&#127937; <b style="color:#88aaff">Algorithm complete!</b> All reachable nodes finalized. Shortest paths from <b style="color:#00aaff">A</b> are shown in the distance table. Green edges form the shortest-path tree.`
+  });
+
+  return steps;
+}
+
+// ─── Apply Step to Scene ─────────────────────────────────────────────────────
+function applyStep(step) {
+  NODE_DEFS.forEach(n => {
+    let col;
+    if (n.id === 'A' && step.dist['A'] === 0 && step.type === 'init') col = C.START;
+    else if (step.visited.has(n.id))  col = (n.id === 'A') ? C.START : C.VISITED;
+    else if (n.id === step.current)   col = C.CURRENT;
+    else if (n.id === step.neighbor)  col = C.NEIGHBOR;
+    else                              col = C.UNVISITED;
+
+    const mesh = nodeMeshes[n.id];
+    const glow = nodeGlows[n.id];
+    const ring = nodeRings[n.id];
+
+    mesh.material.color.setHex(col);
+    const emHex = col === C.UNVISITED ? 0x040810 : col;
+    mesh.material.emissive.setHex(emHex);
+    mesh.material.emissiveIntensity = col === C.UNVISITED ? 0.05 : 0.22;
+
+    glow.material.color.setHex(col);
+    glow.material.opacity = col === C.UNVISITED ? 0.04 : 0.18;
+
+    const isActive = (n.id === step.current || n.id === step.neighbor);
+    ring.material.color.setHex(col);
+    ring.material.opacity = isActive ? 0.55 : 0.0;
+  });
+
+  edgeMeshes.forEach(e => {
+    const eKey = [e.from, e.to].sort().join('|');
+    let col = C.EDGE_DEF;
+    let opa = 0.4;
+    if (step.activeEdge === eKey)       { col = C.EDGE_ACT; opa = 1.0; }
+    else if (step.sptEdges.has(eKey))   { col = C.EDGE_SPT; opa = 0.9; }
+    e.mat.color.setHex(col);
+    e.mat.opacity = opa;
+  });
+
+  // Info panel
+  infoPanel.innerHTML =
+    `<span style="color:#3d5a99;font-size:11px;letter-spacing:1px">DIJKSTRA'S ALGORITHM</span>
+     &nbsp;&nbsp;<span style="color:#2a3f6a;font-size:11px">Step ${stepIndex + 1} / ${steps.length}</span>
+     <br/><span style="font-size:13px">${step.msg}</span>`;
+
+  // Distance table
+  let tbl = `<div style="color:#2e4468;font-size:11px;letter-spacing:1px;margin-bottom:8px">DIST FROM A</div>`;
+  NODE_DEFS.forEach(n => {
+    const d    = step.dist[n.id];
+    const dStr = d === Infinity ? '&#8734;' : d;
+    let col = '#2e4a6a';
+    if (step.visited.has(n.id))  col = '#22dd55';
+    else if (n.id === step.current)  col = '#ffcc00';
+    else if (n.id === step.neighbor) col = '#ff7700';
+    tbl += `<div style="display:flex;justify-content:space-between;gap:18px;line-height:1.9">
+      <span style="color:${col};font-weight:bold">${n.id}</span>
+      <span style="color:${d === Infinity ? '#1e2e44' : '#6ab0ee'}">${dStr}</span>
+    </div>`;
+  });
+  tablePanel.innerHTML = tbl;
+
+  // Progress bar
+  const pct = steps.length > 1 ? (stepIndex / (steps.length - 1)) * 100 : 0;
+  progressBar.style.width = pct + '%';
+  progressLabel.textContent = `Step ${stepIndex + 1} / ${steps.length}`;
+}
+
+// ─── State Machine ────────────────────────────────────────────────────────────
+let steps      = [];
+let stepIndex  = 0;
+let isPlaying  = false;
+let playTimer  = null;
+
+function initAlgo() {
+  steps     = generateSteps();
+  stepIndex = 0;
+  applyStep(steps[0]);
+}
+
+function doNextStep() {
+  if (stepIndex < steps.length - 1) {
+    stepIndex++;
+    applyStep(steps[stepIndex]);
+  } else {
+    stopPlay();
+  }
+}
+
+function stopPlay() {
+  isPlaying = false;
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  autoBtn.innerHTML = '&#9654;&#9654; Auto Play';
+}
+
+function startPlay() {
+  isPlaying = true;
+  autoBtn.innerHTML = '&#9646;&#9646; Pause';
+  function tick() {
+    if (!isPlaying) return;
+    if (stepIndex < steps.length - 1) {
+      doNextStep();
+      const spd   = parseInt(speedSlider.value);
+      const delay = Math.round(1600 - spd * 140);
+      playTimer = setTimeout(tick, delay);
+    } else {
+      stopPlay();
+    }
+  }
+  const spd   = parseInt(speedSlider.value);
+  playTimer = setTimeout(tick, Math.round(1600 - spd * 140));
+}
+
+nextBtn.addEventListener('click',    () => { stopPlay(); doNextStep(); });
+restartBtn.addEventListener('click', () => { stopPlay(); initAlgo();   });
+autoBtn.addEventListener('click',    () => { isPlaying ? stopPlay() : startPlay(); });
+
+// ─── Raycaster / Hover ────────────────────────────────────────────────────────
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2(-9999, -9999);
+
+window.addEventListener('mousemove', e => {
+  mouse.x = (e.clientX / window.innerWidth)  * 2 - 1;
+  mouse.y = (e.clientY / window.innerHeight) * -2 + 1;
+  tooltip.style.left = (e.clientX + 16) + 'px';
+  tooltip.style.top  = (e.clientY - 12) + 'px';
+});
+
+// ─── 3D → Screen Projection ───────────────────────────────────────────────────
+function project(pos3d) {
+  const v = pos3d.clone().project(camera);
+  return {
+    x: (v.x * 0.5 + 0.5) * window.innerWidth,
+    y: (v.y * -0.5 + 0.5) * window.innerHeight,
+    behind: v.z > 1.0
+  };
+}
+
+// ─── Animation Clock & Render Loop ───────────────────────────────────────────
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  controls.update();
+
+  // Billboard rings toward camera
+  NODE_DEFS.forEach(n => {
+    nodeRings[n.id].lookAt(camera.position);
+  });
+
+  // Pulse active nodes; gentle float on all
+  NODE_DEFS.forEach((n, i) => {
+    const mesh = nodeMeshes[n.id];
+    const glow = nodeGlows[n.id];
+    const col  = mesh.material.color.getHex();
+    const isActive = (col === C.CURRENT || col === C.NEIGHBOR);
+    const baseY = n.pos.y;
+    const floatY = baseY + Math.sin(t * 0.8 + i * 1.1) * 0.04;
+
+    if (isActive) {
+      const pulse = 1 + 0.09 * Math.sin(t * 6);
+      mesh.scale.setScalar(pulse);
+      glow.scale.setScalar(pulse * 1.1);
+      mesh.position.y = floatY;
+      glow.position.y = floatY;
+      nodeRings[n.id].position.y = floatY;
+      nodeRings[n.id].scale.setScalar(1 + 0.12 * Math.sin(t * 4 + 0.5));
+    } else {
+      mesh.scale.setScalar(1.0);
+      glow.scale.setScalar(1.0);
+      mesh.position.y = floatY;
+      glow.position.y = floatY;
+      nodeRings[n.id].position.y = floatY;
+    }
+  });
+
+  // Subtle key light drift
+  keyLight.position.x  = 4  + Math.sin(t * 0.3) * 1.5;
+  keyLight.position.z  = 6  + Math.cos(t * 0.25) * 1.5;
+  fillLight.position.x = -8 + Math.cos(t * 0.22) * 1.2;
+
+  // Raycasting
+  raycaster.setFromCamera(mouse, camera);
+  const meshArr = NODE_DEFS.map(n => nodeMeshes[n.id]);
+  const hits    = raycaster.intersectObjects(meshArr);
+  if (hits.length > 0) {
+    const id   = hits[0].object.userData.id;
+    const step = steps[stepIndex] || { dist: {} };
+    const d    = step.dist[id];
+    const dStr = d === Infinity ? '∞' : d;
+    tooltip.style.display = 'block';
+    tooltip.innerHTML =
+      `<b style="color:#88aaff">Node ${id}</b><br>
+       Distance from A: <b style="color:#88ddff">${dStr}</b>`;
+  } else {
+    tooltip.style.display = 'none';
+  }
+
+  // Project node labels
+  NODE_DEFS.forEach(n => {
+    const s = project(nodeMeshes[n.id].position);
+    const lbl = nodeLabels[n.id];
+    if (s.behind) { lbl.style.display = 'none'; return; }
+    lbl.style.display = 'block';
+    lbl.style.left    = s.x + 'px';
+    lbl.style.top     = (s.y - 26) + 'px';
+  });
+
+  // Project edge weight labels
+  weightLabels.forEach(w => {
+    const s = project(w.mid);
+    if (s.behind) { w.d.style.display = 'none'; return; }
+    w.d.style.display = 'block';
+    w.d.style.left    = s.x + 'px';
+    w.d.style.top     = s.y + 'px';
+  });
+
+  renderer.render(scene, camera);
+}
+
+// ─── Resize Handler ───────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+initAlgo();
+animate();
+""" # <-- End of the string block!
+
+# 1. Corrected the function name to match Dijkstra
 def get_dijkstra_content():
     return {
         "title": "Dijkstra's Algorithm",
         "text_explanation": text_content,
-        "media_type": "python_code",
+        "media_type": "3D_simulation", # 2. Corrected the media type
         "code": canvas_payload
     }

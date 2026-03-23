@@ -212,8 +212,607 @@ A* is a widely used algorithm due to its efficiency and optimality guarantees (w
 *   **Logistics and Transportation (Route Optimization):** Finding the shortest or fastest routes for delivery services (e.g., Amazon, UPS), ride-sharing apps (e.g., Uber, Lyft), and public transportation networks, considering factors like traffic, road closures, and travel time.
 """
 
-canvas_payload = """
-# TODO: Insert raw code or Three.js script here
+canvas_payload = r"""
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0d111a);
+scene.fog = new THREE.FogExp2(0x0d111a, 0.032);
+
+const camera = new THREE.PerspectiveCamera(52, window.innerWidth / window.innerHeight, 0.1, 500);
+camera.position.set(0, 10, 24);
+camera.lookAt(0, 0, 0);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.style.margin = '0';
+document.body.style.overflow = 'hidden';
+document.body.style.background = '#0d111a';
+document.body.appendChild(renderer.domElement);
+renderer.domElement.style.position = 'fixed';
+renderer.domElement.style.top = '0';
+renderer.domElement.style.left = '0';
+renderer.domElement.style.zIndex = '0';
+
+const controls = new window.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.06;
+controls.minDistance = 7;
+controls.maxDistance = 55;
+controls.maxPolarAngle = Math.PI * 0.84;
+
+const ambient = new THREE.AmbientLight(0x10182e, 2.2);
+scene.add(ambient);
+const keyLight = new THREE.PointLight(0x3366ff, 3.2, 65);
+keyLight.position.set(5, 14, 8);
+keyLight.castShadow = true;
+scene.add(keyLight);
+const fillLight = new THREE.PointLight(0xaa44ff, 1.8, 45);
+fillLight.position.set(-10, 5, -5);
+scene.add(fillLight);
+const rimLight = new THREE.PointLight(0x00ffcc, 1.0, 38);
+rimLight.position.set(2, -5, -12);
+scene.add(rimLight);
+
+const gridHelper = new THREE.GridHelper(44, 32, 0x151d32, 0x0d1222);
+gridHelper.position.y = -4.5;
+scene.add(gridHelper);
+
+const NODE_DEFS = [
+  { id: 'S', pos: new THREE.Vector3(-8,  0.5,  2.0), h: 10 },
+  { id: 'A', pos: new THREE.Vector3(-4,  3.5, -2.5), h: 7  },
+  { id: 'B', pos: new THREE.Vector3(-4, -1.5,  3.5), h: 6  },
+  { id: 'C', pos: new THREE.Vector3( 0,  4.5, -1.0), h: 4  },
+  { id: 'D', pos: new THREE.Vector3( 0,  0.0,  4.0), h: 5  },
+  { id: 'E', pos: new THREE.Vector3( 3,  2.5, -3.0), h: 2  },
+  { id: 'F', pos: new THREE.Vector3( 4, -1.5,  1.5), h: 3  },
+  { id: 'G', pos: new THREE.Vector3( 8,  1.0, -1.0), h: 0  },
+];
+
+const EDGE_DEFS = [
+  { from: 'S', to: 'A', w: 3 },
+  { from: 'S', to: 'B', w: 2 },
+  { from: 'A', to: 'C', w: 4 },
+  { from: 'A', to: 'D', w: 6 },
+  { from: 'B', to: 'D', w: 3 },
+  { from: 'B', to: 'F', w: 5 },
+  { from: 'C', to: 'E', w: 2 },
+  { from: 'C', to: 'F', w: 7 },
+  { from: 'D', to: 'E', w: 4 },
+  { from: 'D', to: 'F', w: 2 },
+  { from: 'E', to: 'G', w: 3 },
+  { from: 'F', to: 'G', w: 4 },
+];
+
+const adjacency = {};
+NODE_DEFS.forEach(n => (adjacency[n.id] = []));
+EDGE_DEFS.forEach(e => {
+  adjacency[e.from].push({ to: e.to, w: e.w });
+  adjacency[e.to].push({ to: e.from, w: e.w });
+});
+
+const heuristic = {};
+NODE_DEFS.forEach(n => (heuristic[n.id] = n.h));
+
+const C = {
+  UNVISITED: 0x1e2d48,
+  START:     0x00ccff,
+  GOAL:      0xffdd00,
+  OPEN:      0x0099ff,
+  CURRENT:   0xffcc00,
+  CLOSED:    0xaa22ee,
+  PATH:      0x00ff66,
+  EDGE_DEF:  0x111d30,
+  EDGE_ACT:  0xffcc00,
+  EDGE_PATH: 0x00ff66,
+  EDGE_OPEN: 0x0077cc,
+};
+
+const nodeMeshes = {};
+const nodeGlows  = {};
+const nodeRings  = {};
+
+NODE_DEFS.forEach(n => {
+  const radius = (n.id === 'S' || n.id === 'G') ? 0.78 : 0.62;
+  const geo  = new THREE.SphereGeometry(radius, 48, 48);
+  const mat  = new THREE.MeshPhongMaterial({
+    color: n.id === 'S' ? C.START : (n.id === 'G' ? C.GOAL : C.UNVISITED),
+    emissive: 0x060a14, shininess: 130, specular: 0x6688cc
+  });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.copy(n.pos);
+  mesh.castShadow = true;
+  mesh.userData.id = n.id;
+  scene.add(mesh);
+  nodeMeshes[n.id] = mesh;
+
+  const glowGeo = new THREE.SphereGeometry(radius * 1.55, 32, 32);
+  const glowMat = new THREE.MeshBasicMaterial({ color: C.UNVISITED, transparent: true, opacity: 0.05, side: THREE.BackSide });
+  const glow = new THREE.Mesh(glowGeo, glowMat);
+  glow.position.copy(n.pos);
+  scene.add(glow);
+  nodeGlows[n.id] = glow;
+
+  const ringGeo = new THREE.RingGeometry(radius * 1.25, radius * 1.45, 48);
+  const ringMat = new THREE.MeshBasicMaterial({ color: C.UNVISITED, transparent: true, opacity: 0.0, side: THREE.DoubleSide });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.copy(n.pos);
+  ring.lookAt(camera.position);
+  scene.add(ring);
+  nodeRings[n.id] = ring;
+});
+
+const edgeMeshes = [];
+EDGE_DEFS.forEach(e => {
+  const fPos = NODE_DEFS.find(n => n.id === e.from).pos;
+  const tPos = NODE_DEFS.find(n => n.id === e.to).pos;
+  const geo  = new THREE.BufferGeometry().setFromPoints([fPos.clone(), tPos.clone()]);
+  const mat  = new THREE.LineBasicMaterial({ color: C.EDGE_DEF, transparent: true, opacity: 0.45 });
+  const line = new THREE.Line(geo, mat);
+  scene.add(line);
+  const mid = new THREE.Vector3().addVectors(fPos, tPos).multiplyScalar(0.5);
+  edgeMeshes.push({ line, mat, from: e.from, to: e.to, w: e.w, mid });
+});
+
+const FONT = "'Courier New','Lucida Console',monospace";
+const PANEL = `position:fixed;z-index:100;backdrop-filter:blur(12px);
+  background:rgba(6,9,20,0.90);border:1px solid rgba(60,100,220,0.22);border-radius:14px;
+  font-family:${FONT};color:#a8c0e8;`;
+
+function el(tag, css, html) {
+  const d = document.createElement(tag);
+  if (css)  d.style.cssText = css;
+  if (html) d.innerHTML = html;
+  document.body.appendChild(d);
+  return d;
+}
+
+const infoPanel = el('div',
+  `${PANEL}top:14px;left:50%;transform:translateX(-50%);
+   max-width:700px;width:calc(100% - 320px);padding:14px 22px;
+   font-size:13px;line-height:1.7;box-shadow:0 0 44px rgba(30,80,255,0.16);`
+);
+
+const sidePanel = el('div',
+  `${PANEL}top:14px;right:14px;width:210px;padding:14px 16px;
+   font-size:12px;line-height:1.7;box-shadow:0 0 28px rgba(30,80,255,0.12);max-height:calc(100vh - 110px);overflow-y:auto;`
+);
+
+const ctrlPanel = el('div',
+  `${PANEL}bottom:18px;left:50%;transform:translateX(-50%);
+   display:flex;align-items:center;gap:10px;padding:10px 22px;
+   box-shadow:0 0 44px rgba(30,80,255,0.2);white-space:nowrap;`
+);
+
+const BTN = `background:linear-gradient(135deg,#0c1530,#080e22);
+  border:1px solid rgba(70,120,240,0.38);color:#7899dd;border-radius:8px;
+  padding:7px 15px;cursor:pointer;font-family:${FONT};font-size:12.5px;transition:border-color 0.2s,color 0.2s;`;
+
+function mkBtn(lbl) {
+  const b = document.createElement('button');
+  b.innerHTML = lbl;
+  b.style.cssText = BTN;
+  b.onmouseenter = () => { b.style.borderColor = 'rgba(100,160,255,0.8)'; b.style.color = '#ccdeff'; };
+  b.onmouseleave = () => { b.style.borderColor = 'rgba(70,120,240,0.38)';  b.style.color = '#7899dd'; };
+  ctrlPanel.appendChild(b);
+  return b;
+}
+
+const nextBtn    = mkBtn('&#9654; Next Step');
+const autoBtn    = mkBtn('&#9654;&#9654; Auto Play');
+const restartBtn = mkBtn('&#8635; Restart');
+
+const spLbl = document.createElement('span');
+spLbl.style.cssText = `color:#2e4466;font-family:${FONT};font-size:12px;margin-left:4px;`;
+spLbl.textContent = 'Speed:';
+ctrlPanel.appendChild(spLbl);
+const speedSlider = document.createElement('input');
+speedSlider.type = 'range'; speedSlider.min = '1'; speedSlider.max = '10'; speedSlider.value = '5';
+speedSlider.style.cssText = 'width:80px;accent-color:#3366ff;cursor:pointer;';
+ctrlPanel.appendChild(speedSlider);
+
+el('div',
+  `${PANEL}bottom:18px;left:14px;padding:12px 16px;font-size:12px;line-height:2.1;`,
+  `<div style="color:#2a3a5a;font-size:11px;letter-spacing:1px;margin-bottom:2px">LEGEND</div>
+   <div><span style="color:#00ccff;font-size:16px">&#11044;</span> Start (S)</div>
+   <div><span style="color:#ffdd00;font-size:16px">&#11044;</span> Goal (G)</div>
+   <div><span style="color:#1e2d48;font-size:16px">&#11044;</span> Unvisited</div>
+   <div><span style="color:#0099ff;font-size:16px">&#11044;</span> Open List (frontier)</div>
+   <div><span style="color:#ffcc00;font-size:16px">&#11044;</span> Current node</div>
+   <div><span style="color:#aa22ee;font-size:16px">&#11044;</span> Closed List (done)</div>
+   <div><span style="color:#00ff66;font-size:16px">&#11044;</span> Final path</div>`
+);
+
+const tooltip = el('div',
+  `position:fixed;z-index:200;display:none;pointer-events:none;
+   background:rgba(5,8,20,0.95);border:1px solid rgba(70,140,255,0.5);
+   border-radius:10px;padding:10px 15px;font-family:${FONT};font-size:12px;
+   color:#99bbee;box-shadow:0 0 22px rgba(40,90,255,0.32);line-height:1.8;`
+);
+
+const nodeLabels = {};
+NODE_DEFS.forEach(n => {
+  const d = document.createElement('div');
+  d.style.cssText = `position:fixed;pointer-events:none;z-index:50;
+    color:#ffffff;font-family:${FONT};font-size:14px;font-weight:bold;
+    text-shadow:0 0 10px #3366ff,0 0 24px #3366ff,0 0 44px #1133aa;
+    transform:translate(-50%,-50%);transition:color 0.3s;`;
+  d.textContent = n.id;
+  document.body.appendChild(d);
+  nodeLabels[n.id] = d;
+});
+
+const hLabels = {};
+NODE_DEFS.forEach(n => {
+  const d = document.createElement('div');
+  d.style.cssText = `position:fixed;pointer-events:none;z-index:49;
+    color:#556688;font-family:${FONT};font-size:10px;
+    transform:translate(-50%,-50%);`;
+  d.textContent = 'h=' + n.h;
+  document.body.appendChild(d);
+  hLabels[n.id] = d;
+});
+
+const weightLabels = [];
+edgeMeshes.forEach(e => {
+  const d = document.createElement('div');
+  d.textContent = e.w;
+  d.style.cssText = `position:fixed;pointer-events:none;z-index:49;
+    color:#3a5070;font-family:${FONT};font-size:10.5px;transform:translate(-50%,-50%);`;
+  document.body.appendChild(d);
+  weightLabels.push({ d, mid: e.mid });
+});
+
+const progressWrap = el('div',
+  `${PANEL}bottom:78px;left:50%;transform:translateX(-50%);padding:6px 22px 9px;min-width:280px;`
+);
+const progressLabel = document.createElement('div');
+progressLabel.style.cssText = `font-family:${FONT};font-size:11px;color:#2a3f66;text-align:center;margin-bottom:4px;`;
+progressLabel.textContent = 'Step 0 / 0';
+const progressTrack = document.createElement('div');
+progressTrack.style.cssText = `height:4px;border-radius:2px;background:rgba(255,255,255,0.06);overflow:hidden;`;
+const progressBar = document.createElement('div');
+progressBar.style.cssText = `height:100%;width:0%;background:linear-gradient(90deg,#1133bb,#3366ff);border-radius:2px;transition:width 0.3s;`;
+progressTrack.appendChild(progressBar);
+progressWrap.appendChild(progressLabel);
+progressWrap.appendChild(progressTrack);
+
+function generateSteps() {
+  const steps = [];
+  const gCost = {};
+  const parent = {};
+  NODE_DEFS.forEach(n => { gCost[n.id] = Infinity; parent[n.id] = null; });
+  gCost['S'] = 0;
+
+  let openSet  = new Set(['S']);
+  let closedSet = new Set();
+  const openMap = { 'S': { g: 0, h: heuristic['S'], f: heuristic['S'] } };
+  let pathEdges = new Set();
+  let pathNodes = new Set();
+
+  steps.push({
+    type: 'init', current: null, neighbors: [], activeEdges: new Set(),
+    open: { ...openMap }, closed: new Set(closedSet), path: new Set(pathNodes), pathEdges: new Set(pathEdges),
+    gCost: { ...gCost },
+    msg: `&#128640; <b style="color:#88aaff">Initialization.</b> Start node <b style="color:#00ccff">S</b> added to Open List.
+          &nbsp; g(S)=<b>0</b>, h(S)=<b>${heuristic['S']}</b>, f(S)=<b>${heuristic['S']}</b>.
+          A* expands nodes in order of lowest f = g + h.`
+  });
+
+  let safeGuard = 0;
+  while (openSet.size > 0 && safeGuard++ < 200) {
+    let current = null, minF = Infinity;
+    openSet.forEach(id => { if (openMap[id].f < minF) { minF = openMap[id].f; current = id; } });
+    if (!current) break;
+
+    if (current === 'G') {
+      let n = 'G'; pathNodes = new Set();
+      while (n) { pathNodes.add(n); n = parent[n]; }
+      let n2 = 'G';
+      while (parent[n2]) {
+        pathEdges.add([n2, parent[n2]].sort().join('|'));
+        n2 = parent[n2];
+      }
+      steps.push({
+        type: 'goal', current, neighbors: [], activeEdges: new Set(),
+        open: { ...openMap }, closed: new Set(closedSet), path: new Set(pathNodes), pathEdges: new Set(pathEdges),
+        gCost: { ...gCost },
+        msg: `&#127937; <b style="color:#88aaff">Goal reached!</b> Node <b style="color:#ffdd00">G</b> dequeued from Open List.
+              Total path cost = <b style="color:#00ff66">${gCost['G']}</b>. Reconstructing shortest path...`
+      });
+      break;
+    }
+
+    const curData = openMap[current];
+    openSet.delete(current);
+    delete openMap[current];
+    closedSet.add(current);
+
+    steps.push({
+      type: 'pick', current, neighbors: [], activeEdges: new Set(),
+      open: { ...openMap }, closed: new Set(closedSet), path: new Set(pathNodes), pathEdges: new Set(pathEdges),
+      gCost: { ...gCost },
+      msg: `&#128205; <b style="color:#88aaff">Dequeue minimum-f node.</b>
+            Node <b style="color:#ffcc00">${current}</b>: &nbsp;
+            f(<b>${current}</b>) = g(<b>${curData.g}</b>) + h(<b>${curData.h}</b>) = <b>${curData.f}</b>.
+            Moved to <b style="color:#bb55ff">Closed List</b>. Exploring neighbors...`
+    });
+
+    const nbrs = adjacency[current];
+    const activeEdges = new Set();
+    const neighborIds = [];
+
+    nbrs.forEach(({ to, w }) => {
+      if (closedSet.has(to)) return;
+      const tentG  = gCost[current] + w;
+      const h      = heuristic[to];
+      const f      = tentG + h;
+      const eKey   = [current, to].sort().join('|');
+      const oldG   = gCost[to];
+      const improved = tentG < oldG;
+      const oldF   = oldG === Infinity ? '∞' : (oldG + h);
+      activeEdges.add(eKey);
+      neighborIds.push(to);
+
+      if (improved) {
+        gCost[to]   = tentG;
+        parent[to]  = current;
+        openSet.add(to);
+        openMap[to] = { g: tentG, h, f };
+      }
+
+      steps.push({
+        type: 'relax', current, neighbors: [to], activeEdges: new Set([eKey]),
+        open: { ...openMap }, closed: new Set(closedSet), path: new Set(pathNodes), pathEdges: new Set(pathEdges),
+        gCost: { ...gCost },
+        msg: improved
+          ? `&#128270; <b style="color:#88aaff">Relaxing edge</b>
+             <b style="color:#ffcc00">${current}</b>&#8594;<b style="color:#33bbff">${to}</b> (cost ${w}).
+             &nbsp; f(<b>${to}</b>) = g(<b>${tentG}</b>) + h(<b>${h}</b>) = <b style="color:#44ff99">${f}</b>.
+             &nbsp; &#9989; Improved from ${oldF}. <b>${to}</b> updated in Open List.`
+          : `&#128270; <b style="color:#88aaff">Checking edge</b>
+             <b style="color:#ffcc00">${current}</b>&#8594;<b style="color:#33bbff">${to}</b> (cost ${w}).
+             &nbsp; f(<b>${to}</b>) = g(<b>${tentG}</b>) + h(<b>${h}</b>) = <b>${f}</b>.
+             &nbsp; &#10060; Not better than current best (${oldF}). Skipped.`
+      });
+    });
+  }
+
+  if (openSet.size === 0 && !steps.find(s => s.type === 'goal')) {
+    steps.push({
+      type: 'no_path', current: null, neighbors: [], activeEdges: new Set(),
+      open: {}, closed: new Set(closedSet), path: new Set(), pathEdges: new Set(),
+      gCost: { ...gCost },
+      msg: `&#9888;&#65039; <b style="color:#ff4444">No path found.</b> Open List is empty. Goal G is unreachable from S.`
+    });
+  }
+
+  return steps;
+}
+
+function applyStep(step) {
+  NODE_DEFS.forEach(n => {
+    let col;
+    if (step.path.has(n.id))         col = n.id === 'G' ? C.GOAL : (n.id === 'S' ? C.START : C.PATH);
+    else if (n.id === step.current)  col = C.CURRENT;
+    else if (step.neighbors.includes(n.id)) col = C.OPEN;
+    else if (step.closed.has(n.id))  col = C.CLOSED;
+    else if (step.open[n.id])        col = C.OPEN;
+    else if (n.id === 'S')           col = C.START;
+    else if (n.id === 'G')           col = C.GOAL;
+    else                             col = C.UNVISITED;
+
+    const mesh = nodeMeshes[n.id];
+    const glow = nodeGlows[n.id];
+    const ring = nodeRings[n.id];
+    mesh.material.color.setHex(col);
+    const emHex = col === C.UNVISITED ? 0x040810 : col;
+    mesh.material.emissive.setHex(emHex);
+    mesh.material.emissiveIntensity = col === C.UNVISITED ? 0.04 : 0.25;
+    glow.material.color.setHex(col);
+    glow.material.opacity = col === C.UNVISITED ? 0.04 : 0.20;
+    const isActive = (n.id === step.current || step.neighbors.includes(n.id));
+    ring.material.color.setHex(col);
+    ring.material.opacity = isActive ? 0.60 : (step.open[n.id] ? 0.25 : 0.0);
+  });
+
+  edgeMeshes.forEach(e => {
+    const eKey = [e.from, e.to].sort().join('|');
+    let col = C.EDGE_DEF, opa = 0.35;
+    if (step.pathEdges.has(eKey))          { col = C.EDGE_PATH; opa = 1.0; }
+    else if (step.activeEdges.has(eKey))   { col = C.EDGE_ACT;  opa = 1.0; }
+    else if (step.open[e.from] || step.open[e.to]) { col = C.EDGE_OPEN; opa = 0.5; }
+    e.mat.color.setHex(col);
+    e.mat.opacity = opa;
+  });
+
+  infoPanel.innerHTML =
+    `<span style="color:#2a3f6a;font-size:11px;letter-spacing:1px">A* SEARCH ALGORITHM</span>
+     &nbsp;&nbsp;<span style="color:#1e2e4a;font-size:11px">Step ${stepIndex + 1} / ${steps.length}</span>
+     <br/><span style="font-size:13px">${step.msg}</span>`;
+
+  let openRows = '', closedRows = '';
+  const openEntries = Object.entries(step.open).sort((a, b) => a[1].f - b[1].f);
+  openEntries.forEach(([id, data]) => {
+    openRows += `<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.85;border-bottom:1px solid rgba(30,50,90,0.4);padding:1px 0">
+      <span style="color:#33aaff;font-weight:bold">${id}</span>
+      <span style="color:#2a4470">g=<b style="color:#6699cc">${data.g}</b></span>
+      <span style="color:#2a4470">h=<b style="color:#6699cc">${data.h}</b></span>
+      <span style="color:#3355aa">f=<b style="color:#88aaff">${data.f}</b></span>
+    </div>`;
+  });
+  step.closed.forEach(id => {
+    const g = step.gCost[id];
+    const h = heuristic[id];
+    closedRows += `<div style="display:flex;justify-content:space-between;gap:8px;line-height:1.85;border-bottom:1px solid rgba(30,20,50,0.4);padding:1px 0">
+      <span style="color:#9944cc;font-weight:bold">${id}</span>
+      <span style="color:#2a1a44">g=<b style="color:#7744aa">${g}</b></span>
+      <span style="color:#2a1a44">h=<b style="color:#7744aa">${h}</b></span>
+      <span style="color:#441a88">f=<b style="color:#9966cc">${g === Infinity ? '∞' : g + h}</b></span>
+    </div>`;
+  });
+  sidePanel.innerHTML =
+    `<div style="color:#1e3060;font-size:11px;letter-spacing:1px;margin-bottom:8px">LISTS</div>
+     <div style="color:#1e4488;font-size:11px;margin-bottom:4px;letter-spacing:0.5px">&#9654; OPEN  <span style="float:right;color:#112244">${openEntries.length} nodes</span></div>
+     ${openRows || '<div style="color:#1a2a44;font-size:11px">Empty</div>'}
+     <div style="color:#441866;font-size:11px;margin:10px 0 4px;letter-spacing:0.5px">&#9654; CLOSED  <span style="float:right;color:#221133">${step.closed.size} nodes</span></div>
+     ${closedRows || '<div style="color:#1a1030;font-size:11px">Empty</div>'}`;
+
+  const pct = steps.length > 1 ? (stepIndex / (steps.length - 1)) * 100 : 0;
+  progressBar.style.width = pct + '%';
+  progressLabel.textContent = `Step ${stepIndex + 1} / ${steps.length}`;
+}
+
+let steps     = [];
+let stepIndex = 0;
+let isPlaying = false;
+let playTimer = null;
+
+function initAlgo() {
+  steps     = generateSteps();
+  stepIndex = 0;
+  applyStep(steps[0]);
+}
+
+function doNext() {
+  if (stepIndex < steps.length - 1) { stepIndex++; applyStep(steps[stepIndex]); }
+  else stopPlay();
+}
+
+function stopPlay() {
+  isPlaying = false;
+  if (playTimer) { clearTimeout(playTimer); playTimer = null; }
+  autoBtn.innerHTML = '&#9654;&#9654; Auto Play';
+}
+
+function startPlay() {
+  isPlaying = true;
+  autoBtn.innerHTML = '&#9646;&#9646; Pause';
+  function tick() {
+    if (!isPlaying) return;
+    if (stepIndex < steps.length - 1) {
+      doNext();
+      const delay = Math.round(1600 - parseInt(speedSlider.value) * 140);
+      playTimer = setTimeout(tick, delay);
+    } else stopPlay();
+  }
+  playTimer = setTimeout(tick, Math.round(1600 - parseInt(speedSlider.value) * 140));
+}
+
+nextBtn.addEventListener('click',    () => { stopPlay(); doNext();    });
+restartBtn.addEventListener('click', () => { stopPlay(); initAlgo(); });
+autoBtn.addEventListener('click',    () => { isPlaying ? stopPlay() : startPlay(); });
+
+const raycaster = new THREE.Raycaster();
+const mouse     = new THREE.Vector2(-9999, -9999);
+
+window.addEventListener('mousemove', e => {
+  mouse.x =  (e.clientX / window.innerWidth)  * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  tooltip.style.left = (e.clientX + 16) + 'px';
+  tooltip.style.top  = (e.clientY - 14) + 'px';
+});
+
+function project(pos3d) {
+  const v = pos3d.clone().project(camera);
+  return {
+    x: ( v.x * 0.5 + 0.5) * window.innerWidth,
+    y: (-v.y * 0.5 + 0.5) * window.innerHeight,
+    behind: v.z > 1.0
+  };
+}
+
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+  controls.update();
+
+  NODE_DEFS.forEach((n, i) => {
+    const mesh = nodeMeshes[n.id];
+    const glow = nodeGlows[n.id];
+    const ring = nodeRings[n.id];
+    ring.lookAt(camera.position);
+
+    const col      = mesh.material.color.getHex();
+    const isActive = (col === C.CURRENT || col === C.OPEN);
+    const floatY   = n.pos.y + Math.sin(t * 0.75 + i * 1.2) * 0.05;
+
+    if (isActive) {
+      const pulse = 1 + 0.1 * Math.sin(t * 5.5);
+      mesh.scale.setScalar(pulse);
+      glow.scale.setScalar(pulse * 1.1);
+      ring.scale.setScalar(1 + 0.14 * Math.sin(t * 3.8 + 0.4));
+    } else {
+      mesh.scale.setScalar(col === C.PATH ? 1.08 : 1.0);
+      glow.scale.setScalar(1.0);
+      ring.scale.setScalar(1.0);
+    }
+
+    mesh.position.y = floatY;
+    glow.position.y = floatY;
+    ring.position.y = floatY;
+  });
+
+  keyLight.position.x  =  5 + Math.sin(t * 0.28) * 2.0;
+  keyLight.position.z  =  8 + Math.cos(t * 0.22) * 2.0;
+  fillLight.position.x = -10 + Math.cos(t * 0.20) * 1.5;
+
+  raycaster.setFromCamera(mouse, camera);
+  const meshArr = NODE_DEFS.map(n => nodeMeshes[n.id]);
+  const hits    = raycaster.intersectObjects(meshArr);
+  if (hits.length > 0) {
+    const id   = hits[0].object.userData.id;
+    const step = steps[stepIndex] || {};
+    const g    = (step.gCost && step.gCost[id] !== undefined) ? step.gCost[id] : '—';
+    const h    = heuristic[id];
+    const gNum = (typeof g === 'number' && g !== Infinity) ? g : null;
+    const fStr = gNum !== null ? (gNum + h) : (g === Infinity ? '∞' : '—');
+    const gStr = g === Infinity ? '∞' : g;
+    tooltip.style.display = 'block';
+    tooltip.innerHTML =
+      `<b style="color:#88aaff;font-size:13px">Node ${id}</b><br>
+       g (cost from S):&nbsp; <b style="color:#55ccff">${gStr}</b><br>
+       h (heuristic to G): <b style="color:#ffbb44">${h}</b><br>
+       f = g + h:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <b style="color:#66ff99">${fStr}</b>`;
+  } else {
+    tooltip.style.display = 'none';
+  }
+
+  NODE_DEFS.forEach(n => {
+    const p = project(nodeMeshes[n.id].position);
+    const lbl = nodeLabels[n.id];
+    const hlbl = hLabels[n.id];
+    if (p.behind) { lbl.style.display = 'none'; hlbl.style.display = 'none'; return; }
+    lbl.style.display  = 'block';
+    lbl.style.left     = p.x + 'px';
+    lbl.style.top      = (p.y - 28) + 'px';
+    hlbl.style.display = 'block';
+    hlbl.style.left    = p.x + 'px';
+    hlbl.style.top     = (p.y + 22) + 'px';
+  });
+
+  weightLabels.forEach(w => {
+    const p = project(w.mid);
+    if (p.behind) { w.d.style.display = 'none'; return; }
+    w.d.style.display = 'block';
+    w.d.style.left    = p.x + 'px';
+    w.d.style.top     = p.y + 'px';
+  });
+
+  renderer.render(scene, camera);
+}
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+initAlgo();
+animate();
 """
 
 def get_astar_content():

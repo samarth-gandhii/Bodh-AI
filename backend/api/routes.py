@@ -41,16 +41,10 @@ def _fallback_response(context_type: str, error_message: str) -> dict:
 @router.post("/generate")
 async def generate_content(request: GenerateRequest):
     try:
-        # ---------------------------------------------------------
         # ROUTE 1: SIMPLE TEXT (Fast, Direct)
-        # ---------------------------------------------------------
         if request.context_type == "Text" or not request.context_type:
             return await generate_text(request.prompt, request.model_choice)
-
-        # ---------------------------------------------------------
-        # ROUTE 2: COMPLEX MEDIA GENERATION (The Falcon -> Gemini Pipeline)
-        # ---------------------------------------------------------
-        # Step 1: Falcon acts as the Prompt Engineer
+  
         detailed_blueprint = await expand_prompt(request.prompt, request.history,request.context_type)
 
         # Step 2: Gemini executes the complex blueprint

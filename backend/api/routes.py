@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter
 from schemas.models import GenerateRequest # Assuming your Pydantic models are here
 from services.text import generate_text
 from services.threed import generate_3d
@@ -12,14 +12,10 @@ from Cards.dijkastraAlgo import get_dijkstra_content
 from Cards.astarAlgo import get_astar_content
 from Cards.greedyAlgo import get_greedy_content
 from Cards.Solar import get_solar_content
+from utils.server_state import SERVER_INSTANCE_ID
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
-
-
-@router.options("/generate")
-async def generate_options() -> Response:
-    return Response(status_code=204)
 
 
 def _fallback_response(context_type: str, error_message: str) -> dict:
@@ -41,30 +37,50 @@ def _fallback_response(context_type: str, error_message: str) -> dict:
 @router.post("/generate")
 async def generate_content(request: GenerateRequest):
     try:
+        should_reset_context = request.client_server_instance_id != SERVER_INSTANCE_ID
+        effective_history = [] if should_reset_context else request.history
+
         # ROUTE 1: SIMPLE TEXT (Fast, Direct)
         if request.context_type == "Text" or not request.context_type:
-            return await generate_text(request.prompt, request.model_choice)
+            text_result = await generate_text(request.prompt, request.model_choice)
+            text_result["server_instance_id"] = SERVER_INSTANCE_ID
+            text_result["context_reset"] = should_reset_context
+            return text_result
   
-        detailed_blueprint = await expand_prompt(request.prompt, request.history,request.context_type)
+        detailed_blueprint = await expand_prompt(request.prompt, effective_history, request.context_type)
 
         # Step 2: Gemini executes the complex blueprint
         if request.context_type == "3D_simulation":
-            return await generate_3d(detailed_blueprint, request.history)
+            result = await generate_3d(detailed_blueprint, effective_history)
+            result["server_instance_id"] = SERVER_INSTANCE_ID
+            result["context_reset"] = should_reset_context
+            return result
 
         if request.context_type == "Quiz":
-            return await generate_quiz(detailed_blueprint, request.history)
+            result = await generate_quiz(detailed_blueprint, effective_history)
+            result["server_instance_id"] = SERVER_INSTANCE_ID
+            result["context_reset"] = should_reset_context
+            return result
 
         if request.context_type == "Video":
-            return await generate_video(detailed_blueprint, request.history)
+            result = await generate_video(detailed_blueprint, effective_history)
+            result["server_instance_id"] = SERVER_INSTANCE_ID
+            result["context_reset"] = should_reset_context
+            return result
 
         return {
             "text_explanation": "The selected context type is not supported.",
             "media_type": request.context_type,
             "error": "Invalid context type",
+            "server_instance_id": SERVER_INSTANCE_ID,
+            "context_reset": should_reset_context,
         }
     except Exception as exc:
         logger.exception("Generation pipeline failed for context_type=%s", request.context_type)
-        return _fallback_response(request.context_type, str(exc))
+        response = _fallback_response(request.context_type, str(exc))
+        response["server_instance_id"] = SERVER_INSTANCE_ID
+        response["context_reset"] = request.client_server_instance_id != SERVER_INSTANCE_ID
+        return response
 
 @router.get("/cards/{topic_id}")
 async def get_card_content(topic_id: str):

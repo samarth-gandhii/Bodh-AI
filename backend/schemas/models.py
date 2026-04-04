@@ -1,11 +1,13 @@
 from pydantic import BaseModel
+from pydantic import Field
 from typing import Optional, Any
 
 class GenerateRequest(BaseModel):
     prompt: str
-    history: Optional[list[dict[str, str]]] = []
+    history: list[dict[str, str]] = Field(default_factory=list)
     model_choice: Optional[str] = "Gemini 2.5 Flash"  # Updated default
     context_type: Optional[str] = "Text"              # Updated default
+    client_server_instance_id: Optional[str] = None
 
 class GenerateResponse(BaseModel):
     text_explanation: str

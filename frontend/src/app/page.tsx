@@ -63,15 +63,6 @@ export default function Home() {
 
       <main className="flex-1 overflow-y-auto bg-white relative flex flex-col">
 
-        {/* Only show upgrade button on dashboard */}
-        {activeView === "dashboard" && (
-          <div className="absolute top-4 right-6 z-10">
-            <button className="px-4 py-1.5 rounded-full border border-green-300 text-green-600 text-sm font-medium hover:bg-green-50 transition-colors">
-              Upgrade
-            </button>
-          </div>
-        )}
-
         {/* View Router */}
         {activeView === "dashboard" ? (
           <div className="max-w-5xl mx-auto px-8 pt-20 pb-12 w-full">

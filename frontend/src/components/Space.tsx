@@ -41,6 +41,7 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const hasAutoSubmittedInitialPrompt = useRef(false);
+    const serverInstanceIdRef = useRef<string | null>(null);
 
     // Auto-scroll whenever messages change
     useEffect(() => {
@@ -62,6 +63,7 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
         setIsCanvasOpen(false);
 
         try {
+            const previousServerInstanceId = serverInstanceIdRef.current;
             const response = await fetch("http://localhost:8000/api/generate", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -69,11 +71,22 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
                     prompt: userPrompt,
                     history: historyPayload,
                     model_choice: selectedModel,
-                    context_type: contentType || "Text"
+                    context_type: contentType || "Text",
+                    client_server_instance_id: previousServerInstanceId
                 }),
             });
 
             const data = await response.json();
+            const nextServerInstanceId = data.server_instance_id || response.headers.get("X-Server-Instance");
+            if (nextServerInstanceId) {
+                serverInstanceIdRef.current = nextServerInstanceId;
+            }
+
+            const contextWasReset = Boolean(data.context_reset) || (
+                Boolean(previousServerInstanceId) &&
+                Boolean(nextServerInstanceId) &&
+                previousServerInstanceId !== nextServerInstanceId
+            );
 
             const aiMsg: Message = {
                 id: createMessageId(),
@@ -83,7 +96,11 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
                 quiz_data: data.quiz_data || null
             };
 
-            setMessages((prev) => [...prev, aiMsg]);
+            if (contextWasReset) {
+                setMessages([userMsg, aiMsg]);
+            } else {
+                setMessages((prev) => [...prev, aiMsg]);
+            }
 
             if (data.media_type === "3D_simulation" && data.canvas_code) {
                 setActivePanelMode("3D");
@@ -122,7 +139,7 @@ export default function Space({ initialPrompt, initialContentType = "Text" }: Sp
     const latestCanvasCode = messages.filter((m) => m.code).pop()?.code;
     const safeCanvasCode = latestCanvasCode ?? "";
     const encodedCanvasCode = encodeURIComponent(safeCanvasCode);
-    const canvasSrcDoc = `<!DOCTYPE html><html><head><style>body { margin: 0; overflow: hidden; background-color: #000; }</style><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script><script>window.OrbitControls = THREE.OrbitControls;</script></head><body><script>const __ENCODED_CODE__ = "${encodedCanvasCode}"; const __USER_CODE__ = decodeURIComponent(__ENCODED_CODE__); try { new Function(__USER_CODE__)(); } catch(e) { const errMsg = (e && e.message) ? e.message : String(e); const errorDiv = document.createElement('div'); errorDiv.style.color = 'red'; errorDiv.style.padding = '20px'; errorDiv.style.fontFamily = 'sans-serif'; errorDiv.textContent = 'Error running 3D code: ' + errMsg; document.body.innerHTML = ''; document.body.appendChild(errorDiv); }</script></body></html>`;
+    const canvasSrcDoc = `<!DOCTYPE html><html><head><style>body { margin: 0; overflow: hidden; background-color: #000; }</style><script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script><script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script><script>window.OrbitControls = THREE.OrbitControls;</script></head><body><script>const __ENCODED_CODE__ = "${encodedCanvasCode}"; const __USER_CODE__ = decodeURIComponent(__ENCODED_CODE__); if (typeof window.updateUIButtons !== 'function') { window.updateUIButtons = function () {}; } try { new Function(__USER_CODE__)(); } catch(e) { const errMsg = (e && e.message) ? e.message : String(e); const errorDiv = document.createElement('div'); errorDiv.style.color = 'red'; errorDiv.style.padding = '20px'; errorDiv.style.fontFamily = 'sans-serif'; errorDiv.textContent = 'Error running 3D code: ' + errMsg; document.body.innerHTML = ''; document.body.appendChild(errorDiv); }</script></body></html>`;
 
     return (
         <div className="flex absolute inset-0 w-full h-full bg-white overflow-hidden">

@@ -49,7 +49,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen bg-[#fafafa] text-gray-900 font-sans overflow-hidden">
+    <div className="flex min-h-screen bg-[#fafafa] text-gray-900 font-sans">
 
       <Sidebar
         userName={userName}
@@ -61,12 +61,12 @@ export default function Home() {
         onHomeClick={handleHomeClick}
       />
 
-      <main className="flex-1 overflow-y-auto bg-white relative flex flex-col">
+      <main className="flex-1 overflow-y-auto bg-white relative flex flex-col min-w-0">
 
         {/* Only show upgrade button on dashboard */}
         {activeView === "dashboard" && (
-          <div className="absolute top-4 right-6 z-10">
-            <button className="px-4 py-1.5 rounded-full border border-green-300 text-green-600 text-sm font-medium hover:bg-green-50 transition-colors">
+          <div className="absolute top-3 right-4 sm:top-4 sm:right-6 z-10">
+            <button className="px-3 sm:px-4 py-1.5 rounded-full border border-green-300 text-green-600 text-xs sm:text-sm font-medium hover:bg-green-50 transition-colors">
               Upgrade
             </button>
           </div>
@@ -74,9 +74,9 @@ export default function Home() {
 
         {/* View Router */}
         {activeView === "dashboard" ? (
-          <div className="max-w-5xl mx-auto px-8 pt-20 pb-12 w-full">
-            <div className="text-center mb-10">
-              <h1 className="text-4xl font-semibold text-gray-900">Welcome to Pragnya AI, ready to learn?</h1>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pt-14 sm:pt-16 md:pt-20 pb-10 md:pb-12 w-full">
+            <div className="text-center mb-8 md:mb-10">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900">Welcome to Pragnya AI, ready to learn?</h1>
             </div>
 
             {/* <ActionCards showGuide={showGuide} /> */}

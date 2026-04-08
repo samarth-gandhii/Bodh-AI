@@ -35,7 +35,7 @@ export default function QuizUI({ data }: QuizUIProps) {
 
     if (!data || data.length === 0) {
         return (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-white rounded-xl shadow-inner border border-gray-200">
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-4 sm:p-6 bg-white rounded-xl shadow-inner border border-gray-200">
                 <div className="bg-gray-50 p-6 rounded-full mb-6 relative">
                     <HelpCircle size={48} className="text-gray-400" />
                 </div>
@@ -85,8 +85,8 @@ export default function QuizUI({ data }: QuizUIProps) {
     if (showResults) {
         return (
             // FIX: absolute inset-0 locks bounds
-            <div className="absolute inset-0 flex flex-col p-6 bg-gradient-to-br from-[#fbfbfb] to-[#f4f4f5] overflow-y-auto">
-                <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg mx-auto bg-white rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
+            <div className="absolute inset-0 flex flex-col p-4 sm:p-6 bg-gradient-to-br from-[#fbfbfb] to-[#f4f4f5] overflow-y-auto">
+                <div className="flex flex-col items-center justify-center flex-1 w-full max-w-lg mx-auto bg-white rounded-3xl p-5 sm:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100">
                     <div className="relative mb-6">
                         <svg className="w-32 h-32 transform -rotate-90">
                             <circle cx="64" cy="64" r="60" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-gray-100" />
@@ -127,7 +127,7 @@ export default function QuizUI({ data }: QuizUIProps) {
         // FIX: absolute inset-0 completely traps the container preventing blowout
         <div className="absolute inset-0 flex flex-col bg-[#fdfdfd] overflow-hidden rounded-xl">
             {/* Progress Bar Header */}
-            <div className="px-6 py-5 bg-white border-b border-gray-100 shrink-0 shadow-sm z-10">
+            <div className="px-4 sm:px-6 py-4 sm:py-5 bg-white border-b border-gray-100 shrink-0 shadow-sm z-10">
                 <div className="flex items-center justify-between mb-3 text-sm font-medium text-gray-500">
                     <span>Question {currentIndex + 1} of {totalQuestions}</span>
                     <span className="text-purple-600 font-semibold bg-purple-50 px-3 py-1 rounded-full">Score: {score}</span>
@@ -141,7 +141,7 @@ export default function QuizUI({ data }: QuizUIProps) {
             </div>
 
             {/* Question Area */}
-            <div className="flex-1 overflow-y-auto px-6 pt-8 pb-6 min-h-0 scroll-smooth">
+            <div className="flex-1 overflow-y-auto px-4 sm:px-6 pt-6 sm:pt-8 pb-5 sm:pb-6 min-h-0 scroll-smooth">
                 <div className="max-w-2xl mx-auto w-full">
                     <h2 className="text-xl md:text-2xl font-semibold text-gray-800 mb-8 leading-relaxed">
                         {currentQuestion.question}
@@ -226,7 +226,7 @@ export default function QuizUI({ data }: QuizUIProps) {
             </div>
 
             {/* Footer Action Bottom */}
-            <div className="p-4 bg-white border-t border-gray-100 shrink-0 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
+            <div className="p-3 sm:p-4 bg-white border-t border-gray-100 shrink-0 z-10 shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
                 <div className="max-w-2xl mx-auto flex justify-end">
                     {!isSubmitted ? (
                         <button

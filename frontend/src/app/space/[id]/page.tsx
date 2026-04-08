@@ -5,16 +5,18 @@ import Cards from "@/components/Cards";
 import Sidebar from "@/components/Sidebar";
 import { useRouter } from "next/navigation";
 
-export default function SpacePage({ params }: { params: any }) {
+interface SpacePageProps {
+  params: { id: string } | Promise<{ id: string }>;
+}
+
+export default function SpacePage({ params }: SpacePageProps) {
   const router = useRouter();
   const [topicId, setTopicId] = useState<string | null>(null);
 
   useEffect(() => {
-    const resolveParams = async () => {
-      const resolved = await params;
+    Promise.resolve(params).then((resolved) => {
       setTopicId(resolved.id);
-    };
-    resolveParams();
+    });
   }, [params]);
 
   const handleHomeClick = () => {
@@ -22,14 +24,14 @@ export default function SpacePage({ params }: { params: any }) {
   };
 
   return (
-    <div className="flex h-screen bg-[#fafafa] text-gray-900 font-sans overflow-hidden">
+    <div className="flex min-h-screen bg-[#fafafa] text-gray-900 font-sans">
       <Sidebar 
         userName="New User"
         onSearchClick={() => router.push("/")}
         onGuideToggle={() => {}}
         onHomeClick={handleHomeClick}
       />
-      <main className="flex-1 overflow-y-auto bg-white relative flex flex-col">
+      <main className="flex-1 overflow-y-auto bg-white relative flex flex-col min-w-0">
         {topicId ? (
           <Cards topicId={topicId} />
         ) : (

@@ -51,13 +51,13 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
     ];
 
     return (
-      <div className="max-w-3xl mx-auto border border-gray-200 rounded-2xl p-2 bg-white shadow-sm flex flex-col mb-16 relative">
+      <div className="max-w-3xl mx-auto border border-gray-200 rounded-xl sm:rounded-2xl p-2 bg-white shadow-sm flex flex-col mb-8 sm:mb-16 relative">
 
         {/* Input Area */}
-        <div className="flex items-center px-1">
+        <div className="flex items-center px-1 gap-1 sm:gap-2">
           {/* Dynamic Context Pill */}
           {contentType && (
-            <div className="flex items-center bg-green-100 text-green-800 text-sm font-semibold px-2 py-0.5 rounded-md ml-2 whitespace-nowrap gap-1">
+            <div className="flex items-center bg-green-100 text-green-800 text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-md ml-1 sm:ml-2 whitespace-nowrap gap-1">
               @{contentType.replace('_', ' ')}
               <button onClick={() => setContentType("")} className="hover:text-green-900 bg-green-200 rounded-full p-0.5 ml-1">
                 <X size={10} />
@@ -69,7 +69,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
             ref={ref}
             type="text"
             placeholder={contentType ? "Continue typing..." : "Learn anything / Generate 3D Scene..."}
-            className="w-full p-3 outline-none text-gray-800 placeholder-gray-400 bg-transparent flex-1"
+              className="w-full p-2.5 sm:p-3 outline-none text-sm sm:text-base text-gray-800 placeholder-gray-400 bg-transparent flex-1 min-w-0"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -77,23 +77,23 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
         </div>
 
         {/* Bottom Controls */}
-        <div className="flex items-center justify-between mt-2 px-2 pb-1 relative">
-          <div className="flex space-x-2">
+        <div className="flex items-center justify-between mt-2 px-2 pb-1 relative gap-2 flex-wrap">
+          <div className="flex gap-2 flex-wrap">
 
             {/* Model Selector Dropdown */}
             <div className="relative" ref={autoRef}>
               <button
                 onClick={() => setIsAutoOpen(!isAutoOpen)}
-                className="text-xs text-gray-600 hover:bg-gray-100 px-2 py-1 rounded flex items-center gap-1 border border-gray-200 transition-colors bg-white font-medium whitespace-nowrap"
+                className="text-xs text-gray-600 hover:bg-gray-100 px-2 py-1 rounded flex items-center gap-1 border border-gray-200 transition-colors bg-white font-medium whitespace-nowrap max-w-40"
               >
                 {/* Fallback to ensure it is never empty */}
                 <Sparkles size={12} className={selectedModel === "Gemini 2.5 Flash" ? "text-amber-500" : "text-gray-500"} />
-                {selectedModel || "Gemini 2.5 Flash"}
+                <span className="truncate">{selectedModel || "Gemini 2.5 Flash"}</span>
                 <ChevronDown size={12} className="ml-1 text-gray-400" />
               </button>
 
               {isAutoOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 shadow-lg rounded-xl p-1 z-50">
+                <div className="absolute bottom-full left-0 mb-2 w-44 sm:w-48 bg-white border border-gray-200 shadow-lg rounded-xl p-1 z-50">
                   <button
                     onClick={() => { setSelectedModel("Auto"); setIsAutoOpen(false); }}
                     className="w-full flex items-center gap-2 p-2 hover:bg-gray-50 rounded-lg text-sm text-gray-700"
@@ -126,7 +126,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
               </button>
 
               {isContextOpen && (
-                <div className="absolute bottom-full left-0 mb-2 w-48 bg-white border border-gray-200 shadow-lg rounded-xl p-1 z-50">
+                <div className="absolute bottom-full left-0 mb-2 w-44 sm:w-48 bg-white border border-gray-200 shadow-lg rounded-xl p-1 z-50">
                   {contextOptions.map((opt) => (
                     <button
                       key={opt.id}
@@ -145,7 +145,7 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           <button
             onClick={onGenerate}
             disabled={!prompt.trim()}
-            className="bg-gray-400 hover:bg-gray-500 disabled:opacity-50 text-white p-2 rounded-full transition-colors"
+            className="bg-gray-400 hover:bg-gray-500 disabled:opacity-50 text-white p-2 rounded-full transition-colors shrink-0"
           >
             <ArrowUp size={16} />
           </button>

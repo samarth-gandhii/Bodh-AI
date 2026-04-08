@@ -5,7 +5,7 @@ import { Bot, X, Code, Loader2, Maximize, Minimize, HelpCircle } from "lucide-re
 import SearchBar from "./SearchBar";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import QuizUI from "./QuizUI";
+import QuizUI, { type QuizQuestion } from "./QuizUI";
 
 interface CardsProps {
     topicId: string;
@@ -17,8 +17,26 @@ interface Message {
     role: "user" | "ai";
     content: string;
     code?: string | null;
-    quiz_data?: any[] | null;
+    quiz_data?: QuizQuestion[] | null;
 }
+
+interface CardResponse {
+    text_explanation?: string;
+    code?: string | null;
+    quiz_data?: QuizQuestion[] | null;
+}
+
+interface GenerateResponse {
+    text_explanation: string;
+    media_type?: string;
+    canvas_code?: string | null;
+    quiz_data?: QuizQuestion[] | null;
+}
+
+type MarkdownRenderProps = React.HTMLAttributes<HTMLElement> & {
+    children?: React.ReactNode;
+    className?: string;
+};
 
 function createMessageId(): string {
     if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
@@ -32,7 +50,7 @@ export default function Cards({ topicId }: CardsProps) {
     const [isCanvasOpen, setIsCanvasOpen] = useState(false);
     const [isFullScreen, setIsFullScreen] = useState(false);
     const [activePanelMode, setActivePanelMode] = useState<"3D" | "Quiz" | null>(null);
-    const [activeQuizData, setActiveQuizData] = useState<any[] | null>(null);
+    const [activeQuizData, setActiveQuizData] = useState<QuizQuestion[] | null>(null);
 
     const [selectedModel, setSelectedModel] = useState("Gemini 2.5 Flash");
     const [contentType, setContentType] = useState("Text");
@@ -58,7 +76,7 @@ export default function Cards({ topicId }: CardsProps) {
             try {
                 const response = await fetch(`http://localhost:8000/api/cards/${topicId}`);
                 if (!response.ok) throw new Error("Failed to fetch card");
-                const data = await response.json();
+                const data: CardResponse = await response.json();
 
                 const aiMsg: Message = {
                     id: createMessageId(),
@@ -122,7 +140,7 @@ export default function Cards({ topicId }: CardsProps) {
                 }),
             });
 
-            const data = await response.json();
+            const data: GenerateResponse = await response.json();
 
             const aiMsg: Message = {
                 id: createMessageId(),
@@ -170,19 +188,19 @@ export default function Cards({ topicId }: CardsProps) {
         <div className="flex absolute inset-0 w-full h-full bg-white overflow-hidden">
 
             {/* LEFT SIDE: Chat Interface - Updated for floating gradient UI */}
-            <div className={`relative h-full transition-all duration-300 ease-in-out ${isCanvasOpen ? (isFullScreen ? 'hidden' : 'w-1/2 border-r border-gray-200') : 'w-full max-w-4xl mx-auto'}`}>
+            <div className={`relative h-full transition-all duration-300 ease-in-out ${isCanvasOpen ? (isFullScreen ? 'hidden' : 'hidden md:block md:w-1/2 md:border-r md:border-gray-200') : 'w-full max-w-4xl mx-auto'}`}>
 
-                <div className="absolute inset-0 overflow-y-auto p-6 pb-48 space-y-8 scroll-smooth">
+                <div className="absolute inset-0 overflow-y-auto p-4 sm:p-6 pb-44 sm:pb-48 space-y-6 sm:space-y-8 scroll-smooth">
 
                     {messages.map((msg) => (
                         <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
 
                             {msg.role === 'user' ? (
-                                <div className="bg-gray-100 text-gray-900 px-5 py-3 rounded-3xl max-w-[80%] shadow-sm">
+                                <div className="bg-gray-100 text-gray-900 px-4 sm:px-5 py-3 rounded-3xl max-w-[88%] sm:max-w-[80%] shadow-sm">
                                     {msg.content}
                                 </div>
                             ) : (
-                                <div className="flex items-start gap-4 max-w-[90%] w-full">
+                                <div className="flex items-start gap-3 sm:gap-4 max-w-[100%] sm:max-w-[90%] w-full">
                                     <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-1">
                                         <Bot size={18} className="text-blue-600" />
                                     </div>
@@ -191,13 +209,13 @@ export default function Cards({ topicId }: CardsProps) {
                                             <ReactMarkdown
                                                 remarkPlugins={[remarkGfm]}
                                                 components={{
-                                                    p({ children, ...props }: any) {
+                                                    p({ children, ...props }: MarkdownRenderProps) {
                                                         return <p className="mb-5 leading-relaxed" {...props}>{children}</p>;
                                                     },
-                                                    li({ children, ...props }: any) {
+                                                    li({ children, ...props }: MarkdownRenderProps) {
                                                         return <li className="mb-2 ml-4 list-disc" {...props}>{children}</li>;
                                                     },
-                                                    code({ node, inline, className, children, ...props }: any) {
+                                                    code({ className, children, ...props }: MarkdownRenderProps) {
                                                         const childText = String(children ?? "");
                                                         const isBlock = Boolean(className?.includes("language-")) || childText.includes("\n");
 
@@ -246,7 +264,7 @@ export default function Cards({ topicId }: CardsProps) {
                                         {msg.quiz_data && msg.quiz_data.length > 0 && (
                                             <div className="mt-8 mb-4 relative z-20">
                                                 <p className="text-purple-600/80 italic mb-3 font-medium text-sm">
-                                                    🎯 We've reached the end of this topic! Let's test what you learned:
+                                                    🎯 We&apos;ve reached the end of this topic! Let&apos;s test what you learned:
                                                 </p>
                                                 <div className="border border-purple-200 rounded-2xl p-4 flex items-center justify-between bg-purple-50/50 hover:bg-purple-50 transition-colors w-full max-w-md">
                                                     <div className="flex items-center gap-3">
@@ -272,7 +290,7 @@ export default function Cards({ topicId }: CardsProps) {
 
                     {/* Loading Indicator */}
                     {isLoading && (
-                        <div className="flex items-start gap-4 max-w-[90%]">
+                        <div className="flex items-start gap-3 sm:gap-4 max-w-[100%] sm:max-w-[90%]">
                             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-1">
                                 <Bot size={18} className="text-blue-600" />
                             </div>
@@ -287,7 +305,7 @@ export default function Cards({ topicId }: CardsProps) {
                 </div>
 
                 {/* Floating Search Bar with Gradient */}
-                <div className="absolute bottom-0 left-0 w-full pt-20 pb-6 px-6 bg-gradient-to-t from-white via-white/90 to-transparent z-10 pointer-events-none">
+                <div className="absolute bottom-0 left-0 w-full pt-16 sm:pt-20 pb-4 sm:pb-6 px-3 sm:px-6 bg-gradient-to-t from-white via-white/90 to-transparent z-10 pointer-events-none">
                     <div className={`pointer-events-auto ${isCanvasOpen ? 'w-full' : 'max-w-3xl mx-auto'}`}>
                         <SearchBar
                             prompt={prompt}
@@ -303,7 +321,7 @@ export default function Cards({ topicId }: CardsProps) {
             </div>
 
             {/* RIGHT SIDE: Sliding Canvas Panel */}
-            <div className={`bg-[#fbfbfb] h-full transition-all duration-300 ease-in-out flex flex-col border-l border-gray-200 ${isCanvasOpen ? (isFullScreen ? 'w-full translate-x-0' : 'w-1/2 translate-x-0') : 'w-0 translate-x-full overflow-hidden'}`}>
+            <div className={`bg-[#fbfbfb] h-full transition-all duration-300 ease-in-out flex flex-col ${isCanvasOpen ? (isFullScreen ? 'w-full translate-x-0' : 'w-full md:w-1/2 translate-x-0 md:border-l md:border-gray-200') : 'w-0 translate-x-full overflow-hidden'}`}>
                 <div className="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white shrink-0">
                     <span className="font-medium text-sm text-gray-800">
                         {activePanelMode === "Quiz" ? "Interactive Quiz" : "Pragnya AI 3D Sandbox"}
@@ -312,7 +330,7 @@ export default function Cards({ topicId }: CardsProps) {
                         <X size={18} />
                     </button>
                 </div>
-                <div className="flex-1 p-4">
+                <div className="flex-1 p-2 sm:p-4">
                     <div className="w-full h-full bg-black rounded-xl border border-gray-200 overflow-hidden relative shadow-inner">
                         {activePanelMode === "Quiz" ? (
                             <QuizUI data={activeQuizData} />

@@ -51,7 +51,7 @@ export default function Sidebar({ userName, onSearchClick, onGuideToggle, onHome
 
   return (
     <>
-      <aside className={`${isCollapsed ? 'w-20' : 'w-64'} transition-all duration-300 bg-[#fbfbfb] border-r border-gray-200 flex flex-col justify-between h-full relative z-20`}>
+      <aside className={`${isCollapsed ? 'md:w-20' : 'md:w-64'} hidden md:flex transition-all duration-300 bg-[#fbfbfb] border-r border-gray-200 flex-col justify-between h-full relative z-20`}>
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="p-4 flex items-center justify-between shrink-0">

@@ -6,6 +6,7 @@ import { AlignLeft, Play, ChevronDown, ChevronUp } from "lucide-react";
 // 1. Added interface to accept the click handler from page.tsx
 interface ContentGridProps {
   onCardClick?: (id: string) => void;
+  searchQuery?: string;
 }
 
 const CONTENT_DATA = [
@@ -58,11 +59,19 @@ const CONTENT_DATA = [
 const TABS = ["For You", "Algorithms", "Space"];
 
 // 2. Accept the prop here
-export default function ContentGrid({ onCardClick }: ContentGridProps) {
+export default function ContentGrid({ onCardClick, searchQuery = "" }: ContentGridProps) {
   const [activeTab, setActiveTab] = useState("For You");
   const [visibleCount, setVisibleCount] = useState(3);
+  const query = searchQuery.trim().toLowerCase();
 
   const filteredData = CONTENT_DATA.filter((card) => {
+    const queryMatch =
+      !query ||
+      card.title.toLowerCase().includes(query) ||
+      card.subtitle.toLowerCase().includes(query);
+
+    if (!queryMatch) return false;
+
     if (activeTab === "For You") return true;
     if (activeTab === "Algorithms" && card.subtitle === "algorithms") return true;
     if (activeTab === "Space" && card.subtitle === "Space") return true;

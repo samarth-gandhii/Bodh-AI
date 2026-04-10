@@ -1,33 +1,41 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  Search, Clock, Plus, Box, MessageSquare,
-  BookOpen, MoreHorizontal, Menu, Upload, Link as LinkIcon,
-  ClipboardPaste, Mic, LogOut, X, ChevronDown, ChevronRight
+  Search, Clock, Plus, MessageSquare,
+  MoreHorizontal, Menu, Upload, Link as LinkIcon,
+  ClipboardPaste, Mic, LogOut, X, Bot
 } from "lucide-react";
 
 interface SidebarProps {
   userName: string;
   onSearchClick: () => void;
-  onGuideToggle: () => void;
+  onChatClick?: () => void;
+  onHistoryClick?: () => void;
+  onHistoryItemClick?: (topicId: string) => void;
   onHomeClick: () => void;
 }
 
-export default function Sidebar({ userName, onSearchClick, onGuideToggle, onHomeClick }: SidebarProps) {
+export default function Sidebar({
+  userName,
+  onSearchClick,
+  onChatClick,
+  onHistoryClick,
+  onHistoryItemClick,
+  onHomeClick,
+}: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showAddContent, setShowAddContent] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const dummyHistory = [
-    { id: 1, title: "K-Means Clustering 3D Plot" },
-    { id: 2, title: "Time Series: Stock Market Trends" },
-    { id: 3, title: "Decision Tree Architecture" },
-    { id: 4, title: "Neural Network Layers" },
-    { id: 5, title: "PCA Dimensionality Reduction" },
-    { id: 6, title: "Linear Regression Plane" },
-    { id: 7, title: "Cloud Data Pipeline Structure" },
+    { id: 1, topicId: "k-means", title: "K-Means Clustering 3D Plot" },
+    { id: 2, topicId: "time-series", title: "Time Series: Stock Market Trends" },
+    { id: 3, topicId: "decision-tree", title: "Decision Tree Architecture" },
+    { id: 4, topicId: "neural-network", title: "Neural Network Layers" },
+    { id: 5, topicId: "pca", title: "PCA Dimensionality Reduction" },
+    { id: 6, topicId: "linear-regression", title: "Linear Regression Plane" },
+    { id: 7, topicId: "pipeline", title: "Cloud Data Pipeline Structure" },
   ];
 
   // References for the click-outside logic
@@ -68,8 +76,18 @@ export default function Sidebar({ userName, onSearchClick, onGuideToggle, onHome
     closeMobileDrawer();
   };
 
-  const handleGuideAction = () => {
-    onGuideToggle();
+  const handleChatAction = () => {
+    onChatClick?.();
+    closeMobileDrawer();
+  };
+
+  const handleHistoryAction = () => {
+    onHistoryClick?.();
+    closeMobileDrawer();
+  };
+
+  const handleHistoryItemAction = (topicId: string) => {
+    onHistoryItemClick?.(topicId);
     closeMobileDrawer();
   };
 
@@ -152,50 +170,35 @@ export default function Sidebar({ userName, onSearchClick, onGuideToggle, onHome
                 <Search size={18} /> {!isCompact && <span>Search</span>}
               </button>
 
-              {/* History Toggle Button */}
-              <button
-                onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-                className={`w-full flex items-center ${isCompact ? 'justify-center' : 'justify-between'} px-3 py-2 hover:bg-gray-100 rounded-lg ${isHistoryOpen && !isCompact ? 'bg-gray-100' : ''}`}
-              >
-                <div className={`flex items-center ${isCompact ? 'space-x-0' : 'space-x-3'}`}>
-                  <Clock size={18} />
-                  {!isCompact && <span>History</span>}
-                </div>
-                {!isCompact && (
-                  isHistoryOpen ? <ChevronDown size={14} className="text-gray-400" /> : <ChevronRight size={14} className="text-gray-400" />
-                )}
+              <button onClick={handleChatAction} className={`w-full flex items-center ${isCompact ? 'justify-center' : 'space-x-3'} px-3 py-2 hover:bg-gray-100 rounded-lg`}>
+                <Bot size={18} /> {!isCompact && <span>Current Chat</span>}
               </button>
 
-              {/* Scrollable History List (Accordion) */}
-              {!isCompact && isHistoryOpen && (
-                <div className="mt-1 mb-2 pl-2 pr-1 max-h-40 overflow-y-auto space-y-1">
-                  {dummyHistory.map((item) => (
-                    <button
-                      key={item.id}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg truncate text-left transition-colors"
-                    >
-                      <MessageSquare size={12} className="shrink-0 opacity-50" />
-                      <span className="truncate">{item.title}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </nav>
-
-            {!isCompact && <div className="px-6 py-2 mt-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Spaces</div>}
-            <nav className="px-3 space-y-1 text-sm text-gray-600">
-              <button className={`w-full flex items-center ${isCompact ? 'justify-center' : 'space-x-3'} px-3 py-2 hover:bg-gray-100 rounded-lg`}>
-                <Box size={18} /> {!isCompact && <span>{userName}&apos;s Space</span>}
+              <button onClick={handleHistoryAction} className={`w-full flex items-center ${isCompact ? 'justify-center' : 'space-x-3'} px-3 py-2 hover:bg-gray-100 rounded-lg`}>
+                <Clock size={18} /> {!isCompact && <span>History</span>}
               </button>
             </nav>
+
+            {!isCompact && <div className="px-6 py-2 mt-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Recent</div>}
+            {!isCompact && (
+              <div className="px-3 space-y-1 mb-3">
+                {dummyHistory.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => handleHistoryItemAction(item.topicId)}
+                    className="w-full flex items-center space-x-2 px-3 py-2 text-xs text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg truncate text-left transition-colors"
+                  >
+                    <MessageSquare size={12} className="shrink-0 opacity-50" />
+                    <span className="truncate">{item.title}</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
             {!isCompact && <div className="px-6 mt-6 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Help & Tools</div>}
             <nav className="px-3 space-y-1 text-sm text-gray-600 pb-4">
               <button onClick={() => setShowFeedback(true)} className={`w-full flex items-center ${isCompact ? 'justify-center' : 'space-x-3'} px-3 py-2 hover:bg-gray-100 rounded-lg`}>
                 <MessageSquare size={18} /> {!isCompact && <span>Feedback</span>}
-              </button>
-              <button onClick={handleGuideAction} className={`w-full flex items-center ${isCompact ? 'justify-center' : 'space-x-3'} px-3 py-2 hover:bg-gray-100 rounded-lg`}>
-                <BookOpen size={18} /> {!isCompact && <span>Quick Guide</span>}
               </button>
             </nav>
           </div>
@@ -203,7 +206,7 @@ export default function Sidebar({ userName, onSearchClick, onGuideToggle, onHome
           {/* User Profile Footer */}
           <div className="p-4 shrink-0 relative" ref={userMenuRef}>
             {!isCompact && (
-              <div className="border border-green-200 bg-green-50 text-green-700 text-xs text-center py-1 rounded-t-lg">
+              <div className="border border-blue-200 bg-blue-50 text-blue-700 text-xs text-center py-1 rounded-t-lg">
                 {/* Free Plan */}
               </div>
             )}
@@ -212,7 +215,7 @@ export default function Sidebar({ userName, onSearchClick, onGuideToggle, onHome
               className={`w-full flex items-center ${isCompact ? 'justify-center p-2 rounded-lg' : 'justify-between border border-gray-200 border-t-0 bg-white p-2 rounded-b-lg'} hover:bg-gray-50`}
             >
               <div className="flex items-center space-x-2 text-sm font-medium">
-                <div className="w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center text-xs">{userName.charAt(0)}</div>
+                <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs">{userName.charAt(0)}</div>
                 {!isCompact && <span className="truncate">{userName}</span>}
               </div>
               {!isCompact && <MoreHorizontal size={16} className="text-gray-400 shrink-0" />}

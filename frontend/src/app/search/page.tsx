@@ -1,71 +1,74 @@
 "use client";
 
-import React, { useState, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import SearchBar from "@/components/SearchBar";
 import ContentGrid from "@/components/ContentGrid";
 
-export default function Home() {
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <SearchPageContent />
+    </Suspense>
+  );
+}
+
+function SearchPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [userName] = useState("New User");
-  const [prompt, setPrompt] = useState("");
+
+  const query = searchParams.get("q") ?? "";
+
+  const [prompt, setPrompt] = useState(query);
   const [selectedModel, setSelectedModel] = useState("Gemini 2.5 Flash");
   const [contentType, setContentType] = useState("Text");
 
-  const searchInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    setPrompt(query);
+  }, [query]);
 
-  const handleGenerate = () => {
+  const handleSearch = () => {
     if (!prompt.trim()) return;
-    const params = new URLSearchParams({
-      prompt,
-      type: contentType || "Text",
-    });
-    router.push(`/chat?${params.toString()}`);
-    setPrompt("");
-  };
-
-  const handleCardSelect = (topicId: string) => {
-    router.push(`/topic/${topicId}`);
+    router.push(`/search?q=${encodeURIComponent(prompt.trim())}`);
   };
 
   return (
     <div className="flex min-h-screen bg-[#fafafa] text-gray-900 font-sans">
-
       <Sidebar
         userName={userName}
-        onSearchClick={() => {
-          router.push("/search");
-        }}
+        onHomeClick={() => router.push("/")}
+        onSearchClick={() => router.push("/search")}
         onChatClick={() => router.push("/chat")}
         onHistoryClick={() => router.push("/history")}
         onHistoryItemClick={(topicId) => router.push(`/topic/${topicId}`)}
-        onHomeClick={() => {
-          router.push("/");
-          setTimeout(() => searchInputRef.current?.focus(), 100);
-        }}
       />
 
       <main className="flex-1 overflow-y-auto bg-white relative flex flex-col min-w-0">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 pt-14 sm:pt-16 md:pt-20 pb-10 md:pb-12 w-full">
           <div className="text-center mb-8 md:mb-10">
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900">Welcome to Pragnya AI, ready to learn?</h1>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-gray-900">Search Topics</h1>
+            {query && (
+              <p className="mt-2 text-sm text-gray-500">Showing results for &quot;{query}&quot;</p>
+            )}
           </div>
 
           <SearchBar
-            ref={searchInputRef}
             prompt={prompt}
             setPrompt={setPrompt}
-            onGenerate={handleGenerate}
+            onGenerate={handleSearch}
             selectedModel={selectedModel}
             setSelectedModel={setSelectedModel}
             contentType={contentType}
             setContentType={setContentType}
           />
 
-          <ContentGrid onCardClick={handleCardSelect} />
+          <ContentGrid
+            searchQuery={query}
+            onCardClick={(topicId) => router.push(`/topic/${topicId}`)}
+          />
         </div>
-
       </main>
     </div>
   );

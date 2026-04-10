@@ -57,9 +57,9 @@ const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
         <div className="flex items-center px-1 gap-1 sm:gap-2">
           {/* Dynamic Context Pill */}
           {contentType && (
-            <div className="flex items-center bg-green-100 text-green-800 text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-md ml-1 sm:ml-2 whitespace-nowrap gap-1">
+            <div className="flex items-center bg-blue-100 text-blue-800 text-xs sm:text-sm font-semibold px-2 py-0.5 rounded-md ml-1 sm:ml-2 whitespace-nowrap gap-1">
               @{contentType.replace('_', ' ')}
-              <button onClick={() => setContentType("")} className="hover:text-green-900 bg-green-200 rounded-full p-0.5 ml-1">
+              <button onClick={() => setContentType("")} className="hover:text-blue-900 bg-blue-200 rounded-full p-0.5 ml-1">
                 <X size={10} />
               </button>
             </div>

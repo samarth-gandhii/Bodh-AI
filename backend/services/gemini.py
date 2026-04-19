@@ -1,5 +1,5 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from services.llm_client import gemini_llm
+from services.llm_client import generation_llm
 from utils.formatter import extract_js_code
 
 # ---------------------------------------------------------
@@ -9,17 +9,17 @@ async def generate_gemini_3d(expanded_prompt: str, history: list):
     """Takes Falcon's blueprint and writes Three.js code with conversational context."""
     
     template = ChatPromptTemplate.from_messages([
-        ("system", """You are an expert Three.js (r128) developer. Build an interactive 3D simulation.
+        ("system", """You are an expert Three.js developer. Build an interactive 3D simulation.
          
          BLUEPRINT:
     {blueprint}
-RULES: 
-1. Only use standard Three.js syntax (scene, camera, renderer) compatible with r128.
+RULES:
+1. Only use standard Three.js syntax (scene, camera, renderer).
 2. NO import/export statements. Assume 'THREE' and 'OrbitControls' are global.
 3. Use native DOM only for UI (sliders/buttons). No dat.gui or external libs.
 4. Maintain visual consistency with any previous code in the chat history.
-5. PREVENT ERRORS: Ensure variables are correctly typed. Do not call methods like `.normalize()` on objects that do not support them (like THREE.Color).
-6. Provide fully working code wrapped in an animation loop without syntax errors. Use IIFE wrapper if creating local variables to avoid global conflicts."""),
+5. CRITICAL: NEVER OUTPUT HTML TAGS like <script> or <html>. Output PURE JavaScript code only. No markdown fences.
+6. DO NOT use THREE.CSS2DRenderer or CSS3DRenderer. They are NOT available. For labels/text, use native HTML overlay elements or THREE.Sprite."""),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "Follow this blueprint to generate ONLY JavaScript code (no markdown fences): {blueprint}")
     ])
@@ -27,7 +27,7 @@ RULES:
     # Sliding window: last 6 messages
     trimmed_history = history[-4:] if history else []
     
-    chain = template | gemini_llm
+    chain = template | generation_llm
     response = await chain.ainvoke({
         "chat_history": trimmed_history,
         "blueprint": expanded_prompt
@@ -61,7 +61,7 @@ async def generate_gemini_text(prompt: str, history: list) -> str:
     ])
     
     trimmed_history = history[-4:] if history else []
-    chain = template | gemini_llm
+    chain = template | generation_llm
     
     response = await chain.ainvoke({
         "chat_history": trimmed_history,
@@ -81,7 +81,7 @@ async def generate_gemini_quiz(expanded_prompt: str, history: list) -> str:
     ])
     
     trimmed_history = history[-4:] if history else []
-    chain = template | gemini_llm
+    chain = template | generation_llm
     
     response = await chain.ainvoke({
         "chat_history": trimmed_history,

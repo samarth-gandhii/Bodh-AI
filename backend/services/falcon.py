@@ -1,5 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from services.llm_client import falcon_llm
+from services.llm_client import blueprint_llm
+# from services.llm_client import falcon_llm
 
 # ---------------------------------------------------------
 # 1. TEXT ROUTE (Markdown & Flowcharts)
@@ -11,7 +12,8 @@ async def generate_falcon_text(prompt: str) -> str:
         ("human", "{concept}")
     ])
     
-    chain = template | falcon_llm
+    # chain = template | falcon_llm
+    chain = template | blueprint_llm
     response = await chain.ainvoke({"concept": prompt})
     return response if isinstance(response, str) else getattr(response, "content", str(response))
 
@@ -53,7 +55,8 @@ Output ONLY the expanded prompt inside a single block. No conversational intro."
     trimmed_history = history[-4:] if history else []
 
     # 4. Execute the Chain
-    chain = prompt_template | falcon_llm
+    # chain = prompt_template | falcon_llm
+    chain = prompt_template | blueprint_llm
     
     response = await chain.ainvoke({
         "chat_history": trimmed_history,

@@ -8,11 +8,18 @@ load_dotenv()
 
 # 1. Initialize Local Falcon 7B
 # Make sure Ollama is running on your machine and you have pulled the falcon model: `ollama run falcon`
-falcon_llm = OllamaLLM(model="falcon3:7b") 
+# falcon_llm = OllamaLLM(model="falcon3:7b") 
 
-# 2. Initialize Gemini 2.5 Flash
-gemini_llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash", # Using the latest fast model
-    google_api_key=os.getenv("GEMINI_API_KEY"),
-    temperature=0.4 # Lower temperature for more accurate coding
+# 1. Blueprint Expansion (API_KEY_1)
+blueprint_llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    google_api_key=os.getenv("GEMINI_API_KEY_1"),
+    temperature=0.4
+)
+
+# 2. Code Generation (API_KEY_2)
+generation_llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-flash",
+    google_api_key=os.getenv("GEMINI_API_KEY_2"),
+    temperature=0.4
 )

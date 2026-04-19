@@ -8,11 +8,11 @@ from services.quiz import generate_quiz
 from services.video import generate_video
 from services.falcon import expand_prompt 
 
-from Cards.dijkastraAlgo import get_dijkstra_content
-from Cards.astarAlgo import get_astar_content
-from Cards.greedyAlgo import get_greedy_content
-from Cards.Solar import get_solar_content
-from Cards.Blackhole import get_blackhole_content
+from cards.dijkastraAlgo import get_dijkstra_content
+from cards.astarAlgo import get_astar_content
+from cards.greedyAlgo import get_greedy_content
+from cards.Solar import get_solar_content
+from cards.Blackhole import get_blackhole_content
 
 router = APIRouter()
 logger = logging.getLogger(__name__)

@@ -16,8 +16,8 @@ const CONTENT_DATA = [
     subtitle: "Space",
     icon: <AlignLeft className="text-gray-400 mt-1 shrink-0" size={18} />,
     header: (
-      <div className="h-32 bg-blue-900 relative">
-        <div className="absolute inset-0 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+      <div className="h-32 relative overflow-hidden border-b border-gray-100">
+        <img src="https://images.unsplash.com/photo-1614730321146-b6fa6a46bcb4?auto=format&fit=crop&w=800&q=80" alt="Solar System" className="w-full h-full object-cover" />
       </div>
     ),
   },
@@ -38,8 +38,8 @@ const CONTENT_DATA = [
     subtitle: "algorithms",
     icon: <AlignLeft className="text-gray-400 mt-1 shrink-0" size={18} />,
     header: (
-      <div className="h-32 bg-indigo-900 relative">
-        <div className="absolute inset-0 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+      <div className="h-32 bg-white flex items-center justify-center border-b border-gray-100">
+        <span className="font-serif text-xl font-bold text-gray-800">Greedy Algorithm</span>
       </div>
     ),
   },
@@ -49,8 +49,8 @@ const CONTENT_DATA = [
     subtitle: "algorithms",
     icon: <Play className="text-gray-400 mt-1 shrink-0" size={18} />,
     header: (
-      <div className="h-32 bg-gray-800 relative">
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+      <div className="h-32 bg-white flex items-center justify-center border-b border-gray-100">
+        <span className="font-serif text-xl font-bold text-gray-800">Dijkstra's Algorithm</span>
       </div>
     ),
   }
